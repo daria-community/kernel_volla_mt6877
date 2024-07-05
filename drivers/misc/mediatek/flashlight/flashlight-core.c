@@ -1618,36 +1618,25 @@ static ssize_t flashlight_torch_show(
 static ssize_t flashlight_torch_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t size)
 {
-	struct flashlight_dev *fdev,*fdev2;
+	struct flashlight_dev *fdev, *fdev2;
 	struct flashlight_dev_arg fl_dev_arg;
-	int type, ct, part,part_id;
+	int type, ct, part, part_id;
 	int ret;
-	int len,torch_duty,torch_flag;
-	int j= 0;
-	int temp[8] = {0};
+	s32 state;
 
 	len = (size < (sizeof(size) - 1)) ? size : (sizeof(size) - 1);
 	flashlight_state = 0;
-	temp[len] = '\0';
-	for(; j< len-1;j++) {
-		temp[j] = *(buf +j) - '0';
-		printk("temp buff [%d]=%d \n",j,temp[j]);
-		flashlight_state = flashlight_state * 10 + temp[j];
-	}
-	torch_duty = temp[1];
-	torch_flag = temp[0];
-	
-	pr_debug("flashlight_torch_store entry  flashlight_state=%d torch_duty=%d torch_flag=%d  decouple =%d\n",flashlight_state,torch_duty,torch_flag,decouple);
+	if (!kstrtos32(buf, 10, &state))
+		flashlight_state = (state > 0) ? 1 : 0;
 
 	/* find flashlight device */
 	// led1
 	mutex_lock(&fl_mutex);
-	fdev = flashlight_find_dev_by_index(
-			0,
-			0);
+	fdev = flashlight_find_dev_by_index(0, 0);
 	mutex_unlock(&fl_mutex);
+
 	if (!fdev) {
-		pr_info("Find no flashlight fdev device \n");
+		pr_info("Find no flashlight fdev device\n");
 		return -EINVAL;
 	}
 
@@ -1658,7 +1647,9 @@ static ssize_t flashlight_torch_store(struct device *dev,
 	ct = fdev->dev_id.ct;
 	part = fdev->dev_id.part;
 
-	pr_debug("_flashlight_ioctl fl_dev_arg.arg=%d fl_dev_arg.channel=%d type=%d ct=%d part=%d\n",fl_dev_arg.arg,fl_dev_arg.channel,type,ct,part);
+	pr_err("_flashlight_ioctl fl_dev_arg.arg=%d fl_dev_arg.channel=%d type=%d ct=%d part=%d\n",
+	       fl_dev_arg.arg, fl_dev_arg.channel, type, ct, part);
+
 	if (flashlight_verify_index(type, ct, part)) {
 		pr_err("Failed with error index\n");
 		return -EINVAL;
@@ -1672,47 +1663,27 @@ static ssize_t flashlight_torch_store(struct device *dev,
 		ret = fdev->ops->flashlight_set_driver(part_id);
 		if (fdev->dev_id.decouple) {
 			fl_dev_arg.arg = FLASHLIGHT_SCENARIO_DECOUPLE;
-			fdev->ops->flashlight_ioctl(
-				FLASH_IOC_SET_SCENARIO,
-				(unsigned long)&fl_dev_arg);
+			fdev->ops->flashlight_ioctl(FLASH_IOC_SET_SCENARIO,
+						    (unsigned long)&fl_dev_arg);
 		}
 		mutex_unlock(&fl_mutex);
 
-		//FLASH_IOC_SET_DUTY
-		//fl_dev_arg.arg = FLASHLIGHT_CHANNEL1_TORCH_DUTY;
-		if(torch_duty > 2) {
-			torch_duty = 2;
-		}
-		fl_dev_arg.arg = prize_torch_level[torch_duty];
-		printk("led1 duty=%d \n",fl_dev_arg.arg);
-		mutex_lock(&fl_mutex);
-		ret = fl_set_level(fdev, fl_dev_arg.arg);
-		mutex_unlock(&fl_mutex);
-
-		//FLASH_IOC_SET_TIME_OUT_TIME_MS
-		fl_dev_arg.arg = FLASHLIGHT_TORCH_TIMEOUT;
-		if (fdev->ops->flashlight_ioctl(FLASH_IOC_SET_TIME_OUT_TIME_MS,
-				(unsigned long)&fl_dev_arg)) {
-			pr_err("Failed to set timeout\n");
-			return -EFAULT;
-		}
-
-		//FLASH_IOC_SET_ONOFF
-		fl_dev_arg.arg = torch_flag;
+		fl_dev_arg.arg = flashlight_state;
 		mutex_lock(&fl_mutex);
 		ret = fl_enable(fdev, fl_dev_arg.arg);
 		mutex_unlock(&fl_mutex);
+
+		return size;
 	} else {
-		pr_err("Failed with no flashlight fdev ops \n");
+		pr_err("Failed with no flashlight fdev ops\n");
 		return -EFAULT;
 	}
-	// set led2
-	if(decouple == 0) {
+
+	if (decouple == 0) {
 		mutex_lock(&fl_mutex);
-		fdev2 = flashlight_find_dev_by_index(
-				0,
-				1);
+		fdev2 = flashlight_find_dev_by_index(0, 1);
 		mutex_unlock(&fl_mutex);
+
 		if (!fdev2) {
 			pr_info("Find no flashlight fdev2 device\n");
 			return -EINVAL;
@@ -1725,7 +1696,8 @@ static ssize_t flashlight_torch_store(struct device *dev,
 		ct = fdev2->dev_id.ct;
 		part = fdev2->dev_id.part;
 
-		pr_debug("_flashlight_ioctl fl_dev_arg.arg=%d fl_dev_arg.channel=%d type=%d ct=%d part=%d\n",fl_dev_arg.arg,fl_dev_arg.channel,type,ct,part);
+		pr_err("_flashlight_ioctl fl_dev_arg.arg=%d fl_dev_arg.channel=%d type=%d ct=%d part=%d\n",
+		       fl_dev_arg.arg, fl_dev_arg.channel, type, ct, part);
 		if (flashlight_verify_index(type, ct, part)) {
 			pr_err("Failed with error index\n");
 			return -EINVAL;
@@ -1745,24 +1717,7 @@ static ssize_t flashlight_torch_store(struct device *dev,
 			}
 			mutex_unlock(&fl_mutex);
 
-			//FLASH_IOC_SET_DUTY
-			//fl_dev_arg.arg = FLASHLIGHT_CHANNEL2_TORCH_DUTY;
-			fl_dev_arg.arg = torch_duty;
-			printk("led1 duty=%d \n",fl_dev_arg.arg);
-			mutex_lock(&fl_mutex);
-			ret = fl_set_level(fdev2, fl_dev_arg.arg);
-			mutex_unlock(&fl_mutex);
-
-			//FLASH_IOC_SET_TIME_OUT_TIME_MS
-			fl_dev_arg.arg = FLASHLIGHT_TORCH_TIMEOUT;
-			if (fdev2->ops->flashlight_ioctl(FLASH_IOC_SET_TIME_OUT_TIME_MS,
-					(unsigned long)&fl_dev_arg)) {
-				pr_err("Failed to set timeout\n");
-				return -EFAULT;
-			}
-
-			//FLASH_IOC_SET_ONOFF
-			fl_dev_arg.arg = torch_flag;
+			fl_dev_arg.arg = flashlight_state;
 			mutex_lock(&fl_mutex);
 			ret = fl_enable(fdev2, fl_dev_arg.arg);
 			mutex_unlock(&fl_mutex);
