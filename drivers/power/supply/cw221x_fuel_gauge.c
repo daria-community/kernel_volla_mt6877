@@ -680,6 +680,9 @@ static int cw_battery_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_TEMP:   // 46
 		val->intval = cw_bat->temp;
 		break;
+	case POWER_SUPPLY_PROP_CHARGE_FULL:
+		val->intval = cw_bat->bat_fcc_design * cw_bat->soh / 100;
+		break;
 	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
 		val->intval = cw_bat->bat_fcc_design;
 		break;
@@ -701,6 +704,7 @@ static enum power_supply_property cw_battery_properties[] = {
 	POWER_SUPPLY_PROP_CURRENT_NOW,
 	POWER_SUPPLY_PROP_TECHNOLOGY,
 	POWER_SUPPLY_PROP_TEMP,
+	POWER_SUPPLY_PROP_CHARGE_FULL,
 	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
 };
 
