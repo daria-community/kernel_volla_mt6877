@@ -130,6 +130,7 @@ struct cw_battery {
 	int  soh;
 	int  fw_version;
 	int  bat_fcc_design;
+	int  charge_counter;
 };
 
 #endif

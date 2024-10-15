@@ -458,6 +458,16 @@ static int cw_get_bat_fcc_design(struct cw_battery *cw_bat)
 	return 0;
 }
 
+static int cw_get_charge_counter(struct cw_battery *cw_bat)
+{
+	long fcc = cw_bat->bat_fcc_design * cw_bat->soh / 100;
+	long soc = cw_bat->ic_soc_h * 256 + cw_bat->ic_soc_l;
+	long cc = (soc * fcc) / (100 * 256);
+
+	cw_bat->charge_counter = min_t(int, cc, fcc);
+	return 0;
+}
+
 static int cw_update_data(struct cw_battery *cw_bat)
 {
 	int ret = 0;
@@ -468,6 +478,7 @@ static int cw_update_data(struct cw_battery *cw_bat)
 	ret += cw_get_current(cw_bat);
 	ret += cw_get_cycle_count(cw_bat);
 	ret += cw_get_soh(cw_bat);
+	ret += cw_get_charge_counter(cw_bat);
 	FG_ERR(" vol = %d  current = %ld cap = %d temp = %d\n",
 		cw_bat->voltage, cw_bat->cw_current, cw_bat->ui_soc, cw_bat->temp);
 
@@ -686,6 +697,9 @@ static int cw_battery_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
 		val->intval = cw_bat->bat_fcc_design;
 		break;
+	case POWER_SUPPLY_PROP_CHARGE_COUNTER:
+		val->intval = cw_bat->charge_counter;
+		break;
 	default:
 		ret = -EINVAL;
 		break;
@@ -704,6 +718,7 @@ static enum power_supply_property cw_battery_properties[] = {
 	POWER_SUPPLY_PROP_CURRENT_NOW,
 	POWER_SUPPLY_PROP_TECHNOLOGY,
 	POWER_SUPPLY_PROP_TEMP,
+	POWER_SUPPLY_PROP_CHARGE_COUNTER,
 	POWER_SUPPLY_PROP_CHARGE_FULL,
 	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
 };
