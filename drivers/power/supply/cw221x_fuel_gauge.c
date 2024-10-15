@@ -441,6 +441,23 @@ static int cw_get_fw_version(struct cw_battery *cw_bat)
 	return 0;
 }
 
+static int cw_get_bat_fcc_design(struct cw_battery *cw_bat)
+{
+	int ret;
+	u32 bat_fcc_design;
+	struct i2c_client *client = cw_bat->client;
+	struct device *dev = &client->dev;
+
+	ret = of_property_read_u32(dev->of_node, "bat_fcc_design", &bat_fcc_design);
+	if (ret) {
+		FG_ERR("Failed to read bat_fcc_design property!\n");
+		return ret;
+	}
+
+	cw_bat->bat_fcc_design = bat_fcc_design;
+	return 0;
+}
+
 static int cw_update_data(struct cw_battery *cw_bat)
 {
 	int ret = 0;
@@ -472,6 +489,7 @@ static int cw_init_data(struct cw_battery *cw_bat)
 	ret += cw_get_current(cw_bat);
 	ret += cw_get_cycle_count(cw_bat);
 	ret += cw_get_soh(cw_bat);
+	ret += cw_get_bat_fcc_design(cw_bat);
 
 	FG_ERR("chip_id = %d vol = %d  cur = %ld cap = %d temp = %d  fw_version = %d\n",
 		cw_bat->chip_id, cw_bat->voltage, cw_bat->cw_current, cw_bat->ui_soc, cw_bat->temp, cw_bat->fw_version);
@@ -662,6 +680,9 @@ static int cw_battery_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_TEMP:   // 46
 		val->intval = cw_bat->temp;
 		break;
+	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
+		val->intval = cw_bat->bat_fcc_design;
+		break;
 	default:
 		ret = -EINVAL;
 		break;
@@ -680,6 +701,7 @@ static enum power_supply_property cw_battery_properties[] = {
 	POWER_SUPPLY_PROP_CURRENT_NOW,
 	POWER_SUPPLY_PROP_TECHNOLOGY,
 	POWER_SUPPLY_PROP_TEMP,
+	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
 };
 
 static int cw221x_probe(struct i2c_client *client, const struct i2c_device_id *id)

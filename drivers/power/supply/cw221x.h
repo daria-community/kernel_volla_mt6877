@@ -129,6 +129,7 @@ struct cw_battery {
 	int  cycle;
 	int  soh;
 	int  fw_version;
+	int  bat_fcc_design;
 };
 
 #endif
