@@ -12,4 +12,8 @@
 #
 
 #include $(srctree)/drivers/misc/mediatek/imgsensor/src/Makefile.custom
+ifeq ($(CONFIG_DARIA_PRODUCT_QOQNOOS),y)
+obj-y += ov16a1qmipiraw_qoqnoos_Sensor.o
+else
 obj-y += ov16a1qmipiraw_Sensor.o
+endif

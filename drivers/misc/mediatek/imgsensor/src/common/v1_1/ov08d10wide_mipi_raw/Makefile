@@ -10,9 +10,4 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU General Public License for more details.
 #
-
-ifeq ($(CONFIG_DARIA_PRODUCT_QOQNOOS),y)
-obj-y += ov50a40mipiraw_qoqnoos_Sensor.o
-else
-obj-y += ov50a40mipiraw_Sensor.o
-endif
+obj-y += ov08d10mipiraw_Sensor.o

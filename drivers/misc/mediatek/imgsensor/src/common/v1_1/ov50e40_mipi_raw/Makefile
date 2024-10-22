@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2015 MediaTek Inc.
+# Copyright (C) 2018 MediaTek Inc.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License version 2 as
@@ -11,8 +11,4 @@
 # GNU General Public License for more details.
 #
 
-ifeq ($(CONFIG_DARIA_PRODUCT_QOQNOOS),y)
-obj-y += ov50a40mipiraw_qoqnoos_Sensor.o
-else
-obj-y += ov50a40mipiraw_Sensor.o
-endif
+obj-y += ov50e40mipi_Sensor.o
