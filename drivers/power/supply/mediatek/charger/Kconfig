@@ -265,4 +265,3 @@ config FACTORY_CHARGE
 	  Say Y to enable
 	  Set to Yes if FACTORY CHARGE is used.
 # drv add by tankaikun, add factory charger class, 20231201 end
-
