@@ -266,6 +266,11 @@ endif
 
 obj-$(CONFIG_THERMAL) += mtk_tsAll.o
 obj-$(CONFIG_THERMAL) += mtk_ts_imgsensor.o
+# pri modified for adapted n77pa ntc and charger ntc by lurongzhe at 2024/9/13
+ifeq ($(CONFIG_DARIA_PRODUCT_QOQNOOS),y)
+obj-$(CONFIG_THERMAL) += mtk_ts_btsn77pa.o
+obj-$(CONFIG_THERMAL) += mtk_ts_btscharger_spin.o
+endif
 endif
 
 
