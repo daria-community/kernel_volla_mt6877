@@ -64,7 +64,9 @@
 
 // prize baibo for beapod tee begin
 #include "tee_client_api.h"
+#if !defined(CONFIG_TRUSTONIC_TEE_SUPPORT)
 #include "teei_fp.h"
+#endif
 // prize baibo for beapod tee end
 
 /* MTK header */
@@ -93,7 +95,15 @@
 #if defined(CONFIG_PRIZE_HARDWARE_INFO)
 #include "../../../misc/prize/hardware_info/hardware_info.h"
 extern struct hardware_info current_fingerprint_info;
+#if defined(CONFIG_DARIA_PRODUCT_ZAHEDAN)
+#define SENSOR_NAME "GW9578"
 static int read_id = 9518;
+#elif defined(CONFIG_DARIA_PRODUCT_QOQNOOS)
+#define SENSOR_NAME "GW9598"
+static int read_id = 0x1261;
+#else
+#error "Please set CONFIG_DARIA_PRODUCT"
+#endif
 
 #endif
 
@@ -107,7 +117,9 @@ u8 g_debug_level = DEBUG_LOG;
 #define ROUND_UP(x, align)		((x+(align-1))&~(align-1))
 
 // prize baibo for beapod tee begin
+#if !defined(CONFIG_TRUSTONIC_TEE_SUPPORT)
 static struct TEEC_UUID vendor_uuid = {0x7778c03f, 0xc30c, 0x4dd0, {0xa3, 0x19, 0xea, 0x29, 0x64, 0x3d, 0x4d, 0x4b}};
+#endif
 // prize baibo for beapod tee end
 
 /*************************************************************/
@@ -1948,11 +1960,13 @@ static int gf_probe(struct spi_device *spi)
 	gf_spi_clk_enable(gf_dev, 0);
 
 	// prize baibo for beapod tee begin
+	#if !defined(CONFIG_TRUSTONIC_TEE_SUPPORT)
 	memcpy(&uuid_fp,&vendor_uuid,sizeof(struct TEEC_UUID));
+	#endif
 	// prize baibo for beapod tee end
 
 	#if defined(CONFIG_PRIZE_HARDWARE_INFO)
-	sprintf(current_fingerprint_info.chip,"GW9578");
+	sprintf(current_fingerprint_info.chip,SENSOR_NAME);
 	sprintf(current_fingerprint_info.id,"0x%x",read_id);
 	strcpy(current_fingerprint_info.vendor,"goodix");
 	strcpy(current_fingerprint_info.more,"fingerprint");
