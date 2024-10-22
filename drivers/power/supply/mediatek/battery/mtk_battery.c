@@ -71,6 +71,11 @@
 /* ============================================================ */
 #define NETLINK_FGD 26
 
+#if defined(CONFIG_SM5602_SUPPORT)
+#define EXTERNAL_FG_NAME "sm-bat"
+#elif defined(CONFIG_MTK_CW2217_SUPPORT)
+#define EXTERNAL_FG_NAME "cw-bat"
+#endif
 
 /************ adc_cali *******************/
 #define ADC_CALI_DEVNAME "MT_pmic_adc_cali"
@@ -455,10 +460,10 @@ static int battery_get_property(struct power_supply *psy,
 	bool b_ischarging = 0;
 	struct battery_data *data =
 		container_of(psy->desc, struct battery_data, psd);
-#if defined(CONFIG_MTK_CW2217_SUPPORT)
+#ifdef EXTERNAL_FG_NAME
 	int ui_soc = 0;
 	union power_supply_propval value;
-	struct power_supply *cwfg_psy = power_supply_get_by_name("cw-bat");
+	struct power_supply *cwfg_psy = power_supply_get_by_name(EXTERNAL_FG_NAME);
 #endif
 
 	switch (psp) {
@@ -493,7 +498,7 @@ static int battery_get_property(struct power_supply *psy,
 #endif
 		break;
 	case POWER_SUPPLY_PROP_CYCLE_COUNT:
-#if defined(CONFIG_MTK_CW2217_SUPPORT)
+#ifdef EXTERNAL_FG_NAME
 	if (cwfg_psy) {
 		power_supply_get_property(cwfg_psy, POWER_SUPPLY_PROP_CYCLE_COUNT, &value);
 		pr_info("%s:get cw-bat success, curr(%d)\n",__func__, value.intval);
@@ -518,7 +523,7 @@ static int battery_get_property(struct power_supply *psy,
 			val->intval = gm.fixed_uisoc;
 		else
 			val->intval = data->BAT_CAPACITY;
-	#if defined(CONFIG_MTK_CW2217_SUPPORT)
+	#ifdef EXTERNAL_FG_NAME
     val->intval = battery_get_uisoc();
 	#endif
 		break;
@@ -528,7 +533,7 @@ static int battery_get_property(struct power_supply *psy,
 			fgcurrent = 0 - fgcurrent;
 
 		val->intval = fgcurrent * 100;
-	#if defined(CONFIG_MTK_CW2217_SUPPORT)
+	#ifdef EXTERNAL_FG_NAME
     val->intval = battery_get_bat_current()*1000;
 	#endif
 		break;
@@ -565,19 +570,19 @@ static int battery_get_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
 		val->intval = data->BAT_batt_vol * 1000;
-	#if defined(CONFIG_MTK_CW2217_SUPPORT)
+	#ifdef EXTERNAL_FG_NAME
 		val->intval = battery_get_bat_voltage()* 1000;
 	#endif
 		break;
 	case POWER_SUPPLY_PROP_TEMP:
 		val->intval = gm.tbat_precise;
-	#if defined(CONFIG_MTK_CW2217_SUPPORT)
+	#ifdef EXTERNAL_FG_NAME
 		val->intval = battery_get_bat_temperature()*10;
 	#endif
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY_LEVEL:
 		val->intval = check_cap_level(data->BAT_CAPACITY);
-	#if defined(CONFIG_MTK_CW2217_SUPPORT)
+	#ifdef EXTERNAL_FG_NAME
 		ui_soc = battery_get_uisoc();
     val->intval = check_cap_level(ui_soc);
 	#endif
