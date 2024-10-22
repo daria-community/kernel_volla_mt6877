@@ -3550,8 +3550,9 @@ int mtk_dsi_trigger(struct mtk_ddp_comp *comp, void *handle)
 	return 0;
 }
 
+/*pri add ESD multiple value detection 20241121 start*/
 int mtk_dsi_read_gce(struct mtk_ddp_comp *comp, void *handle,
-			struct DSI_T0_INS *t0, int i, uintptr_t slot)
+			struct DSI_T0_INS *t0, struct DSI_T0_INS *t1, int i, uintptr_t slot)
 {
 	struct mtk_dsi *dsi = container_of(comp, struct mtk_dsi, ddp_comp);
 	dma_addr_t read_slot = (dma_addr_t)slot;
@@ -3562,9 +3563,9 @@ int mtk_dsi_read_gce(struct mtk_ddp_comp *comp, void *handle,
 				0x0, DSI_DUAL_EN);
 	}
 	cmdq_pkt_write(handle, comp->cmdq_base, comp->regs_pa + DSI_CMDQ0,
-		0x00013700, ~0);
-	cmdq_pkt_write(handle, comp->cmdq_base, comp->regs_pa + DSI_CMDQ1,
 		AS_UINT32(t0), ~0);
+	cmdq_pkt_write(handle, comp->cmdq_base, comp->regs_pa + DSI_CMDQ1,
+		AS_UINT32(t1), ~0);
 	cmdq_pkt_write(handle, comp->cmdq_base, comp->regs_pa + DSI_CMDQ_SIZE,
 		0x2, ~0);
 
@@ -3609,6 +3610,7 @@ int mtk_dsi_esd_read(struct mtk_ddp_comp *comp, void *handle, uintptr_t slot)
 	unsigned char tx_buf[10];
 #else
 	struct DSI_T0_INS t0;
+	struct DSI_T0_INS t1;
 #endif
 
 	if (dsi->ext && dsi->ext->params)
@@ -3622,14 +3624,19 @@ int mtk_dsi_esd_read(struct mtk_ddp_comp *comp, void *handle, uintptr_t slot)
 			break;
 
 #ifndef CONFIG_MTK_MT6382_BDG
-		t0.CONFG = 0x04;
-		t0.Data0 = params->lcm_esd_check_table[i].cmd;
-		t0.Data_ID = (t0.Data0 < 0xB0)
-				     ? DSI_DCS_READ_PACKET_ID
-				     : DSI_GERNERIC_READ_LONG_PACKET_ID;
+		t0.CONFG = 0x00;
+		t0.Data_ID = 0x37;
+		t0.Data0 = params->lcm_esd_check_table[i].count;
 		t0.Data1 = 0;
 
-		mtk_dsi_read_gce(comp, handle, &t0, i, slot);
+		t1.CONFG = 0x04;
+		t1.Data0 = params->lcm_esd_check_table[i].cmd;
+		t1.Data_ID = (t1.Data0 < 0xB0)
+				     ? DSI_DCS_READ_PACKET_ID
+				     : DSI_GERNERIC_READ_LONG_PACKET_ID;
+		t1.Data1 = 0;
+
+		mtk_dsi_read_gce(comp, handle, &t0, &t1, i, slot);
 #else
 		read_msg.type = (params->lcm_esd_check_table[i].cmd < 0xB0)
 				     ? DSI_DCS_READ_PACKET_ID
@@ -3648,8 +3655,8 @@ int mtk_dsi_esd_read(struct mtk_ddp_comp *comp, void *handle, uintptr_t slot)
 
 int mtk_dsi_esd_cmp(struct mtk_ddp_comp *comp, void *handle, void *slot)
 {
-	int i, ret = 0;
-	u32 tmp0 = 0, tmp1 = 0, chk_val = 0;
+	int i, j, ret = 0;
+	u32 tmp0 = 0, tmp1 = 0, chk_val[4] = {0};
 	struct mtk_dsi *dsi = container_of(comp, struct mtk_dsi, ddp_comp);
 	struct esd_check_item *lcm_esd_tb;
 	struct mtk_panel_params *params;
@@ -3673,26 +3680,41 @@ int mtk_dsi_esd_cmp(struct mtk_ddp_comp *comp, void *handle, void *slot)
 
 		lcm_esd_tb = &params->lcm_esd_check_table[i];
 
-		if ((tmp0 & 0xff) == 0x1C)
-			chk_val = tmp1 & 0xff;
-		else
-			chk_val = (tmp0 >> 8) & 0xff;
-
-		if (lcm_esd_tb->mask_list[0])
-			chk_val = chk_val & lcm_esd_tb->mask_list[0];
-
-		if (chk_val == lcm_esd_tb->para_list[0] || chk_val == lcm_esd_tb->para_list[1]) {
-			ret = 0;
+		if (((tmp0 & 0xff) == 0x1C) || ((tmp0 & 0xff) == 0x1A)) {
+			for (j = 0; j < lcm_esd_tb->count && j < 4; j++) {
+				chk_val[j] = tmp1 & 0xff;
+				tmp1 = tmp1 >> 8;
+			}
 		} else {
-			DDPINFO("[DSI]cmp fail:read(0x%x)!=expect(0x%x) and !=expect(0x%x)\n",
-				  chk_val, lcm_esd_tb->para_list[0], lcm_esd_tb->para_list[1]);
-			ret = -1;
-			break;
+			tmp0 = tmp0 >> 8;
+			tmp1 = tmp1 & 0xff;
+			tmp0 = (tmp1 << 24) + tmp0;
+			for (j = 0; j < lcm_esd_tb->count && j < 4; j++) {
+				chk_val[j] = tmp0 & 0xff;
+				tmp0 = tmp0 >> 8;
+			}
+		}
+
+		for (j = 0; j < lcm_esd_tb->count && j < 4; j++) {
+			if (lcm_esd_tb->mask_list[j])
+				chk_val[j] = chk_val[j] & lcm_esd_tb->mask_list[j];
+
+			//printk("[ESD]chk_val[%d]:0x%x, para_list[%d]:0x%x\n",
+			//		j, chk_val[j], j, lcm_esd_tb->para_list[j]);
+			if (chk_val[j] == lcm_esd_tb->para_list[j]) {
+				ret = 0;
+			} else {
+				DDPPR_ERR("[DSI]cmp fail:read(0x%x)!=expect(0x%x)\n",
+					  chk_val[j], lcm_esd_tb->para_list[j]);
+				ret = -1;
+				return ret;
+			}
 		}
 	}
 
 	return ret;
 }
+/*pri add ESD multiple value detection 20241121 end*/
 
 static const char *mtk_dsi_cmd_mode_parse_state(unsigned int state)
 {
@@ -6272,6 +6294,31 @@ static void mtk_dsi_vdo_timing_change(struct mtk_dsi *dsi,
 			kfree(cb_data);
 			return;
 		}
+		/*pri add vfp send cmd support 20240909 start*/
+		if (dsi && dsi->ext && dsi->ext->params
+			&& dsi->ext->params->change_fps_by_vfp_send_cmd) {
+			cmdq_pkt_wfe(handle,
+				     mtk_crtc->gce_obj.event[EVENT_CMD_EOF]);
+			/*1.1 send cmd: stop vdo mode*/
+			mtk_dsi_stop_vdo_mode(dsi, handle);
+			/* for crtc first enable,dyn fps fail*/
+			if (dsi->data_rate == 0) {
+				dsi->data_rate = mtk_dsi_default_rate(dsi);
+				mtk_mipi_tx_pll_rate_set_adpt(dsi->phy, dsi->data_rate);
+				if (dsi->slave_dsi) {
+					dsi->slave_dsi->data_rate = dsi->data_rate;
+					mtk_mipi_tx_pll_rate_set_adpt(dsi->slave_dsi->phy,
+						dsi->data_rate);
+				}
+
+				if (dsi->data_rate) {
+					mtk_dsi_phy_timconfig(dsi, NULL);
+					if (dsi->slave_dsi)
+						mtk_dsi_phy_timconfig(dsi->slave_dsi, NULL);
+				}
+			}
+		}
+		/*pri add vfp send cmd support 20240909 end*/
 		vfp = adjusted_mode.vsync_start - adjusted_mode.vdisplay;
 		if ((dsi->mipi_hopping_sta
 #ifdef CONFIG_MTK_MT6382_BDG
@@ -6296,6 +6343,24 @@ static void mtk_dsi_vdo_timing_change(struct mtk_dsi *dsi,
 		mtk_disp_mutex_trigger(comp->mtk_crtc->mutex[0], handle);
 		mtk_dsi_trigger(comp, handle);
 #endif
+		/*pri add vfp send cmd support 20240909 start*/
+		if (dsi && dsi->ext && dsi->ext->params
+			&& dsi->ext->params->change_fps_by_vfp_send_cmd) {
+			/*1.2 send cmd: send cmd*/
+			mtk_dsi_send_switch_cmd(dsi, handle, mtk_crtc, src_mode,
+						drm_mode_vrefresh(&adjusted_mode));
+			/*1.3 send cmd: start vdo mode*/
+			mtk_dsi_start_vdo_mode(comp, handle);
+			/*clear EOF
+			 * avoid config continue after we trigger vdo mode
+			 */
+			cmdq_pkt_clear_event(handle,
+				     mtk_crtc->gce_obj.event[EVENT_CMD_EOF]);
+			/*1.3 send cmd: trigger*/
+			mtk_disp_mutex_trigger(comp->mtk_crtc->mutex[0], handle);
+			mtk_dsi_trigger(comp, handle);
+		}
+		/*pri add vfp send cmd support 20240909 end*/
 	}
 	cb_data->cmdq_handle = handle;
 	cb_data->crtc = &mtk_crtc->base;
@@ -6361,12 +6426,18 @@ static int mtk_dsi_io_cmd(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle,
 		mtk_dsi_trigger(comp, handle);
 		break;
 	case CONNECTOR_PANEL_ENABLE:
+#if IS_ENABLED(CONFIG_TOUCHSCREEN_FTS_FT3519)
+		mdelay(12);
+#endif
 		mtk_output_dsi_enable(dsi, true);
 		break;
 	case CONNECTOR_PANEL_DISABLE:
 	{
 		mtk_output_dsi_disable(dsi, true);
 		dsi->doze_enabled = false;
+#if IS_ENABLED(CONFIG_TOUCHSCREEN_FTS_FT3519)
+		mdelay(12);
+#endif
 	}
 		break;
 	case CONNECTOR_ENABLE:
