@@ -70,9 +70,11 @@ struct lcm {
 	bool prepared;
 	bool enabled;
 
+	bool lhbm_en;
 	bool hbm_en;
 
 	unsigned int bl_level;
+	unsigned int restore_level;
 	atomic_t reg_level;
 
 	int error;
@@ -150,15 +152,17 @@ static void lcm_panel_get_data(struct lcm *ctx)
 /*PRIZE:Added by lvyuanchuan,X9-678,20221230 start*/
 static void lcm_pannel_reconfig_blk(struct lcm *ctx)
 {
-	char bl_tb0[] = {0x51,0x07,0xFF};
+	char bl_tb0[] = {0x51,0x0F,0xFF}; // 4095
 	unsigned int reg_level = 0;
 	if (mtk_drm_esd_check_status()) {
 		/*PRIZE:Added by lvyuanchuan,X9-534,20230103*/
-		if(ctx->bl_level)
-			reg_level = Gamma_to_level[ctx->bl_level];
+		if (!ctx->hbm_en) {
+			if (ctx->restore_level)
+				reg_level = ctx->restore_level;
 
-		bl_tb0[1] = (reg_level>>8)&0xf;
-		bl_tb0[2] = (reg_level)&0xff;
+			bl_tb0[1] = (reg_level>>8)&0xf;
+			bl_tb0[2] = (reg_level)&0xff;
+		}
 		lcm_dcs_write(ctx,bl_tb0,ARRAY_SIZE(bl_tb0));
 		mtk_drm_esd_set_status(0);
 	}
@@ -323,7 +327,6 @@ static int lcm_unprepare(struct drm_panel *panel)
 	//prize add by wangfei for ldo 1.8 20210709 end
 
 
-	ctx->hbm_en = false;
 	return 0;
 }
 
@@ -492,11 +495,20 @@ static int lcm_setbacklight_cmdq(void *dsi, dcs_write_gce cb,
 	char hbm_tb[] = {0x51,0x0F,0xFF};
 	unsigned int reg_level = 0;
 
-	if (level && level <= BRIGHTNESS_HALF) {
-		reg_level = Gamma_to_level[level];
-		atomic_set(&g_ctx->reg_level, reg_level);
+	if (level < 0 && level > BRIGHTNESS_HALF)
+		return -1;
+
+	reg_level = Gamma_to_level[level];
+
+	if (reg_level)
+		g_ctx->restore_level = reg_level;
+
+	if (g_ctx->hbm_en) {
+		cb(dsi, handle, hbm_tb, ARRAY_SIZE(hbm_tb));
+		return 0;
 	}
 
+	atomic_set(&g_ctx->reg_level, reg_level);
 	g_ctx->bl_level = level;
 	bl_tb0[1] = (reg_level>>8)&0xf;
 	bl_tb0[2] = (reg_level)&0xff;
@@ -513,12 +525,52 @@ static int lcm_setbacklight_cmdq(void *dsi, dcs_write_gce cb,
 unsigned short led_level_disp_get(char *name)
 {
     int trans_level = 0;
-	trans_level = Gamma_to_level[g_ctx->bl_level];
+	if (g_ctx->bl_level > BRIGHTNESS_HALF)
+		trans_level = g_ctx->bl_level;
+	else
+		trans_level = Gamma_to_level[g_ctx->bl_level];
+
 	pr_err("[%s]: name: %s, level : %d",__func__, name, trans_level);
 	return trans_level;
 }
 EXPORT_SYMBOL(led_level_disp_get);
 //prize add by gongtaitao for sensorhub get backlight 20221028 end
+
+static int panel_hbm_set_cmdq(struct drm_panel *panel, void *dsi,
+			      dcs_write_gce cb, void *handle, bool en)
+{
+	struct lcm *ctx = panel_to_lcm(panel);
+	char hbm_tb[] = {0x51,0x0F,0xFF}; // 4095
+	unsigned int restore_level = ctx->restore_level;
+
+	if (!cb || !ctx)
+		return -1;
+
+	if (en == ctx->hbm_en)
+		return 0;
+
+	if (en) {
+		ctx->bl_level = BRIGHTNESS_FULL;
+		ctx->hbm_en = true;
+		atomic_set(&ctx->reg_level, BRIGHTNESS_FULL);
+	} else {
+		hbm_tb[1] = (restore_level>>8)&0xf;
+		hbm_tb[2] = (restore_level)&0xff;
+		ctx->bl_level = restore_level;
+		ctx->hbm_en = false;
+		atomic_set(&g_ctx->reg_level, restore_level);
+	}
+
+	cb(dsi, handle, hbm_tb, ARRAY_SIZE(hbm_tb));
+	return 0;
+}
+
+static void panel_hbm_get_state(struct drm_panel *panel, bool *state)
+{
+	struct lcm *ctx = panel_to_lcm(panel);
+
+	*state = ctx->hbm_en;
+}
 
 unsigned int lhbm_for_gain[] = {
 0, 727, 751, 767, 787, 803, 819, 839, 855, 875, 900, 924, 940, 964, 984, 1000,
@@ -549,7 +601,7 @@ unsigned int lhbm_for_gain[] = {
 4048, 4060, 4060, 4076, 4080, 4084, 4088, 4096
 };
 
-static int panel_hbm_set_cmdq(struct drm_panel *panel, void *dsi,
+static int panel_lhbm_set_cmdq(struct drm_panel *panel, void *dsi,
 			      dcs_write_gce cb, void *handle, bool en)
 {
 	char hbm_tb0[] = {0x63, 0x10, 0x00, 0x07, 0xFF};
@@ -561,12 +613,12 @@ static int panel_hbm_set_cmdq(struct drm_panel *panel, void *dsi,
 	if (!cb)
 		return -1;
 
-	if (ctx->hbm_en == en)
+	if (ctx->lhbm_en == en)
 		goto done;
 
 	if (en)
 	{
-		printk("[panel] %s : set HBM, trans_level:%d\n",__func__,trans_level);
+		printk("[panel] %s : set LHBM, trans_level:%d\n",__func__,trans_level);
 
 		if (trans_level >= 335) {
 			hbm_tb0[1] = 0x10;
@@ -586,22 +638,22 @@ static int panel_hbm_set_cmdq(struct drm_panel *panel, void *dsi,
 	}
 	else
 	{
-		printk("[panel] %s : out HBM mode\n",__func__);
+		printk("[panel] %s : out LHBM mode\n",__func__);
 
 		cb(dsi, handle, normal_tb, ARRAY_SIZE(normal_tb));
 	}
 
-	ctx->hbm_en = en;
+	ctx->lhbm_en = en;
 
  done:
 	return 0;
 }
 
-static void panel_hbm_get_state(struct drm_panel *panel, bool *state)
+static void panel_lhbm_get_state(struct drm_panel *panel, bool *state)
 {
 	struct lcm *ctx = panel_to_lcm(panel);
 
-	*state = ctx->hbm_en;
+	*state = ctx->lhbm_en;
 }
 
 static int lcm_get_virtual_heigh(void)
@@ -902,6 +954,8 @@ static struct mtk_panel_funcs ext_funcs = {
 	.ata_check = panel_ata_check,
 	.hbm_set_cmdq = panel_hbm_set_cmdq,
 	.hbm_get_state = panel_hbm_get_state,
+	.hbm_fp_set_cmdq = panel_lhbm_set_cmdq,
+	.hbm_fp_get_state = panel_lhbm_get_state,
 	.get_virtual_heigh = lcm_get_virtual_heigh,
 	.get_virtual_width = lcm_get_virtual_width,
 	.ext_param_set = mtk_panel_ext_param_set,
@@ -1084,7 +1138,7 @@ static int lcm_probe(struct mipi_dsi_device *dsi)
 	//add by wangfei
 	// lcm_panel_init(ctx);
 	g_ctx = ctx;
-	ctx->hbm_en = false;
+	ctx->lhbm_en = false;
 
 #if defined(CONFIG_PRIZE_HARDWARE_INFO)
     strcpy(current_lcm_info.chip,"vtdr6126.vdo");
