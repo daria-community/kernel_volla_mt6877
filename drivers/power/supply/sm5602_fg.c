@@ -1982,7 +1982,7 @@ static int fg_get_property(struct power_supply *psy, enum power_supply_property 
 	case POWER_SUPPLY_PROP_CHARGE_COUNTER:
 		ret = fg_read_rmc(sm);
 		if (ret >= 0)
-			sm->batt_rmc = ret;
+			sm->batt_rmc = ret * 1000; //uAh
 		else
 			sm->batt_rmc = 2500 * 1000; //uAh : Fixed 2500mAh
 		val->intval =  sm->batt_rmc;
@@ -2385,7 +2385,7 @@ static void fg_refresh_status(struct sm_fg_chip *sm)
 			sm->batt_temp = fg_read_temperature(sm, TEMPERATURE_3RD);
 		else
 			sm->batt_temp = -ENODATA;
-		sm->batt_rmc = fg_read_rmc(sm);
+		sm->batt_rmc = fg_read_rmc(sm) * 1000; //uAh
 		fg_cal_carc(sm);
 
 		pr_info("[SM5602]RSOC:%d, Volt:%d, Current:%d, Temperature:%d, OCV:%d, RMC:%d\n",
