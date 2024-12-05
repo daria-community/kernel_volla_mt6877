@@ -120,7 +120,6 @@ static enum power_supply_property battery_props[] = {
 	POWER_SUPPLY_PROP_CHARGE_COUNTER,
 	POWER_SUPPLY_PROP_TEMP,
 	POWER_SUPPLY_PROP_CAPACITY_LEVEL,
-	POWER_SUPPLY_PROP_TIME_TO_FULL_NOW,
 	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
 };
 
@@ -468,12 +467,30 @@ static int battery_get_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_HEALTH:
 		val->intval = data->BAT_HEALTH;/* do not change before*/
+#ifdef EXTERNAL_FG_NAME
+		if (cwfg_psy) {
+			power_supply_get_property(cwfg_psy, POWER_SUPPLY_PROP_HEALTH, &value);
+			val->intval = value.intval;
+		}
+#endif
 		break;
 	case POWER_SUPPLY_PROP_PRESENT:
 		val->intval = data->BAT_PRESENT;/* do not change before*/
+#ifdef EXTERNAL_FG_NAME
+		if (cwfg_psy) {
+			power_supply_get_property(cwfg_psy, POWER_SUPPLY_PROP_PRESENT, &value);
+			val->intval = value.intval;
+		}
+#endif
 		break;
 	case POWER_SUPPLY_PROP_TECHNOLOGY:
 		val->intval = data->BAT_TECHNOLOGY;
+#ifdef EXTERNAL_FG_NAME
+		if (cwfg_psy) {
+			power_supply_get_property(cwfg_psy, POWER_SUPPLY_PROP_TECHNOLOGY, &value);
+			val->intval = value.intval;
+		}
+#endif
 		break;
 	case POWER_SUPPLY_PROP_CYCLE_COUNT:
 #if defined(CONFIG_MTK_CW2217_SUPPORT)
@@ -519,14 +536,32 @@ static int battery_get_property(struct power_supply *psy,
 		val->intval = battery_get_bat_avg_current()*1000;
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_FULL:
+#ifdef EXTERNAL_FG_NAME
+		if (cwfg_psy) {
+			power_supply_get_property(cwfg_psy, POWER_SUPPLY_PROP_CHARGE_FULL, &value);
+			val->intval = value.intval;
+		}else{
+			val->intval = 0;	 //invalid
+		}
+#else
 		val->intval =
 			fg_table_cust_data.fg_profile[gm.battery_id].q_max
 			* 1000;
+#endif
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_COUNTER:
+#ifdef EXTERNAL_FG_NAME
+		if (cwfg_psy) {
+			power_supply_get_property(cwfg_psy, POWER_SUPPLY_PROP_CHARGE_COUNTER, &value);
+			val->intval = value.intval;
+		}else{
+			val->intval = 0;	 //invalid
+		}
+#else
 		val->intval = gm.ui_soc *
 			fg_table_cust_data.fg_profile[gm.battery_id].q_max
 			* 1000 / 100;
+#endif
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
 		val->intval = data->BAT_batt_vol * 1000;
@@ -547,33 +582,15 @@ static int battery_get_property(struct power_supply *psy,
     val->intval = check_cap_level(ui_soc);
 	#endif
 		break;
-	case POWER_SUPPLY_PROP_TIME_TO_FULL_NOW:
-		/* full or unknown must return 0 */
-		ret = check_cap_level(data->BAT_CAPACITY);
-		if ((ret == POWER_SUPPLY_CAPACITY_LEVEL_FULL) ||
-			(ret == POWER_SUPPLY_CAPACITY_LEVEL_UNKNOWN))
-			val->intval = 0;
-		else {
-			int q_max_now = fg_table_cust_data.fg_profile[
-						gm.battery_id].q_max;
-			int remain_ui = 100 - data->BAT_CAPACITY;
-			int remain_mah = remain_ui * q_max_now / 10;
-			int time_to_full = 0;
-
-			gauge_get_current(&fgcurrent);
-
-			if (fgcurrent != 0)
-				time_to_full = remain_mah * 3600 / fgcurrent;
-
-			bm_debug("time_to_full:%d, remain:ui:%d mah:%d, fgcurrent:%d, qmax:%d\n",
-				time_to_full, remain_ui, remain_mah,
-				fgcurrent, q_max_now);
-
-			val->intval = abs(time_to_full);
-		}
-		ret = 0;
-		break;
 	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
+#ifdef EXTERNAL_FG_NAME
+		if (cwfg_psy) {
+			power_supply_get_property(cwfg_psy, POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN, &value);
+			val->intval = value.intval;
+		}else{
+			val->intval = 0;	 //invalid
+		}
+#else
 		if (check_cap_level(data->BAT_CAPACITY) ==
 			POWER_SUPPLY_CAPACITY_LEVEL_UNKNOWN)
 			val->intval = 0;
@@ -593,6 +610,7 @@ static int battery_get_property(struct power_supply *psy,
 			}
 			val->intval = q_max_uah;
 		}
+#endif
 		break;
 
 
