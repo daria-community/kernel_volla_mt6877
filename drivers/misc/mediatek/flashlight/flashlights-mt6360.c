@@ -48,8 +48,8 @@
 #define MT6360_LEVEL_TORCH 7
 // prize modify by zhuzhengjiang for flash current end
 #define MT6360_LEVEL_FLASH MT6360_LEVEL_NUM
-#define MT6360_WDT_TIMEOUT 1248 /* ms */
-#define MT6360_HW_TIMEOUT 400 /* ms */
+#define MT6360_WDT_TIMEOUT 0 /* ms */
+#define MT6360_HW_TIMEOUT 0 /* ms */
 
 /* define mutex, work queue and timer */
 static DEFINE_MUTEX(mt6360_mutex);
@@ -930,8 +930,8 @@ static int mt6360_probe(struct platform_device *pdev)
 	mt6360_timer_ch1.function = mt6360_timer_func_ch1;
 	hrtimer_init(&mt6360_timer_ch2, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	mt6360_timer_ch2.function = mt6360_timer_func_ch2;
-	mt6360_timeout_ms[MT6360_CHANNEL_CH1] = 600;
-	mt6360_timeout_ms[MT6360_CHANNEL_CH2] = 600;
+	mt6360_timeout_ms[MT6360_CHANNEL_CH1] = 0;
+	mt6360_timeout_ms[MT6360_CHANNEL_CH2] = 0;
 
 	/* clear attributes */
 	use_count = 0;
