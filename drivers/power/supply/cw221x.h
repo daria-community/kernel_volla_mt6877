@@ -73,7 +73,7 @@
 #define SIZE_OF_PROFILE         80
 #define USER_RSENSE             1500  /* mhom rsense * 1000  for convenience calculation */
 
-#define queue_delayed_work_time  8000
+#define queue_delayed_work_time  3000
 #define queue_start_work_time    50
 
 #define CW_SLEEP_20MS           20
