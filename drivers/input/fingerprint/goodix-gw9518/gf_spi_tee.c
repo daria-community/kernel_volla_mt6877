@@ -1698,7 +1698,7 @@ static const struct file_operations gf_fops = {
 /*-------------------------------------------------------------------------*/
 
 // prize baibo for chipid begin
-static int gf_get_chipid()
+static int gf_get_chipid(void)
 {
     struct device_node *node = NULL;
     struct platform_device *pdev = NULL;
