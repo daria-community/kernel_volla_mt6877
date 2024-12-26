@@ -83,4 +83,8 @@ ccflags-y += -I$(srctree)/drivers/misc/mediatek/mmdvfs
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/slbc
 ccflags-y += -I$(srctree)/drivers/staging/android/mtk_ion
 ccflags-y += -I$(srctree)/drivers/staging/android/mtk_ion/mtk
+MTK_PLATFORM := $(subst ",,$(CONFIG_MTK_PLATFORM))
+MTK_PROJECT := $(subst ",,$(CONFIG_ARCH_MTK_PROJECT))
+
+ccflags-y += -D$(MTK_PLATFORM) -D$(MTK_PROJECT)
 
