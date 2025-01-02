@@ -5620,7 +5620,7 @@
 	memory_ssmr_features: memory-ssmr-features {
 		compatible = "mediatek,memory-ssmr-features";
 #ifdef CONFIG_MTK_SEC_VIDEO_PATH_SUPPORT
-		svp-region-based-size = <0 0x1A000000>;
+		svp-region-based-size = <0 0x8000000>;
 #endif
 #ifdef CONFIG_MTK_CAM_SECURITY_SUPPORT
 		iris-recognition-size = <0 0x10000000>;
