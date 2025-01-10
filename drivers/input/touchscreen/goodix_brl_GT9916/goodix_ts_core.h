@@ -35,7 +35,9 @@
 #include <linux/of_gpio.h>
 #include <linux/regulator/consumer.h>
 #endif
-#if IS_ENABLED(CONFIG_FB)
+#if IS_ENABLED(CONFIG_DRM_MEDIATEK)
+#include "mtk_disp_notify.h"
+#elif IS_ENABLED(CONFIG_FB)
 #include <linux/notifier.h>
 #include <linux/fb.h>
 #endif
@@ -532,7 +534,7 @@ struct goodix_ts_core {
 	struct notifier_block report_mode_notifier;
 	struct goodix_ts_esd ts_esd;
 
-#if IS_ENABLED(CONFIG_FB)
+#if IS_ENABLED(CONFIG_FB) || IS_ENABLED(CONFIG_DRM_MEDIATEK)
 	struct notifier_block fb_notifier;
 #endif
 };

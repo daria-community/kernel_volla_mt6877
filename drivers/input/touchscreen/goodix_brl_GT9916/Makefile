@@ -10,3 +10,6 @@ goodix_core-y := \
 				goodix_ts_gesture.o \
 				goodix_ts_inspect.o \
 				goodix_ts_tools.o
+
+# For DRM notifier
+ccflags-y += -I$(srctree)/drivers/gpu/drm/mediatek

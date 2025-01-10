@@ -1424,7 +1424,7 @@ static int mode_switch(struct drm_panel *panel, unsigned int cur_mode,
 	//prize add by majiangtao for frequency Select 20230103 end
 	return ret;
 }
-extern int run_to_goodix_ts_suspend(void);
+
 /*PRIZE:added by lvyuanchuan,x9-750,20230110 start*/
 static int panel_doze_enable_start(struct drm_panel *panel,
 	void *dsi, dcs_write_gce cb, void *handle)
@@ -1470,7 +1470,6 @@ static int panel_doze_enable(struct drm_panel *panel,
 	lcm_dcs_write_seq_static(ctx, 0x39);
 	/*Enter AOD 30nit*/
 	lcm_dcs_write_seq_static(ctx, 0x51, 0x09, 0x56);
-	run_to_goodix_ts_suspend();
 	return 0;
 }
 
