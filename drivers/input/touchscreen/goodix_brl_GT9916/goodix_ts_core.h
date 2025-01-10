@@ -533,6 +533,7 @@ struct goodix_ts_core {
 	struct notifier_block ts_notifier;
 	struct notifier_block report_mode_notifier;
 	struct goodix_ts_esd ts_esd;
+	struct mutex ts_mutex;
 
 #if IS_ENABLED(CONFIG_FB) || IS_ENABLED(CONFIG_DRM_MEDIATEK)
 	struct notifier_block fb_notifier;

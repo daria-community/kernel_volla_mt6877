@@ -1838,6 +1838,17 @@ static void goodix_ts_release_connects(struct goodix_ts_core *core_data)
  */
 static int goodix_ts_suspend(struct goodix_ts_core *core_data)
 {
+	int rc;
+
+	mutex_lock(&core_data->ts_mutex);
+	rc = goodix_ts_suspend_locked(core_data);
+	mutex_unlock(&core_data->ts_mutex);
+
+	return rc;
+}
+
+static int goodix_ts_suspend_locked(struct goodix_ts_core *core_data)
+{
 	struct goodix_ext_module *ext_module, *next;
 	struct goodix_ts_hw_ops *hw_ops = core_data->hw_ops;
 	int ret;
@@ -1914,6 +1925,17 @@ out:
  * Called by PM/FB/EARLYSUSPEN module to wakeup device
  */
 static int goodix_ts_resume(struct goodix_ts_core *core_data)
+{
+	int rc;
+
+	mutex_lock(&core_data->ts_mutex);
+	rc = goodix_ts_resume_locked(core_data);
+	mutex_unlock(&core_data->ts_mutex);
+
+	return rc;
+}
+
+static int goodix_ts_resume_locked(struct goodix_ts_core *core_data)
 {
 	struct goodix_ext_module *ext_module, *next;
 	struct goodix_ts_hw_ops *hw_ops = core_data->hw_ops;
@@ -2364,6 +2386,9 @@ static int goodix_ts_probe(struct platform_device *pdev)
 		core_module_prob_sate = CORE_MODULE_PROB_FAILED;
 		return -EINVAL;
 	}
+
+	mutex_init(&core_data->ts_mutex);
+
 	goodix_core_module_init();
 	/* touch core layer is a platform driver */
 	core_data->pdev = pdev;
