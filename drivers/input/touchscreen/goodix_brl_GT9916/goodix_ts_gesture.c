@@ -55,6 +55,19 @@ struct gesture_module {
 static struct gesture_module *gsx_gesture; /*allocated in gesture init module*/
 static bool module_initialized;
 
+static void gesture_wakeup()
+{
+	struct goodix_ts_core *cd = g_ts_core;
+	mutex_lock(&cd->ts_mutex);
+	if (cd->ts_state == TS_SLEEP) {
+		goodix_ts_resume_locked(cd);
+		goodix_ts_suspend_locked(cd);
+	} else {
+		ts_err("ts not in sleep state");
+	}
+	mutex_unlock(&cd->ts_mutex);
+}
+
 static ssize_t gsx_double_type_show(struct goodix_ext_module *module,
 		char *buf)
 {
@@ -89,6 +102,7 @@ static ssize_t gsx_double_type_store(struct goodix_ext_module *module,
 	if (buf[0] == '1') {
 		ts_info("enable double tap");
 		gsx->ts_core->gesture_type |= GESTURE_DOUBLE_TAP;
+		gesture_wakeup();
 	} else if (buf[0] == '0') {
 		ts_info("disable double tap");
 		gsx->ts_core->gesture_type &= ~GESTURE_DOUBLE_TAP;
@@ -164,6 +178,7 @@ static ssize_t gsx_single_type_store(struct goodix_ext_module *module,
 	if (buf[0] == '1') {
 		ts_info("enable single tap");
 		gsx->ts_core->gesture_type |= GESTURE_SINGLE_TAP;
+		gesture_wakeup();
 	} else if (buf[0] == '0') {
 		ts_info("disable single tap");
 		gsx->ts_core->gesture_type &= ~GESTURE_SINGLE_TAP;
@@ -207,6 +222,7 @@ static ssize_t gsx_fod_type_store(struct goodix_ext_module *module,
 	if (buf[0] == '1') {
 		ts_info("enable fod");
 		gsx->ts_core->gesture_type |= GESTURE_FOD_PRESS;
+		gesture_wakeup();
 	} else if (buf[0] == '0') {
 		ts_info("disable fod");
 		gsx->ts_core->gesture_type &= ~GESTURE_FOD_PRESS;
@@ -397,6 +413,9 @@ static int gsx_gesture_before_suspend(struct goodix_ts_core *cd,
 	int ret;
 	const struct goodix_ts_hw_ops *hw_ops = cd->hw_ops;
 
+	if (cd->gesture_type == 0)
+		return EVT_CONTINUE;
+
 	ret = hw_ops->gesture(cd, 0);
 	if (ret)
 		ts_err("failed enter gesture mode");
@@ -406,6 +425,7 @@ static int gsx_gesture_before_suspend(struct goodix_ts_core *cd,
 	hw_ops->irq_enable(cd, true);
 	enable_irq_wake(cd->irq);
 
+	cd->ts_state = TS_GESTURE;
 	return EVT_CANCEL_SUSPEND;
 }
 
@@ -414,6 +434,9 @@ static int gsx_gesture_before_resume(struct goodix_ts_core *cd,
 {
 	const struct goodix_ts_hw_ops *hw_ops = cd->hw_ops;
 
+	if (cd->ts_state != TS_GESTURE)
+		return EVT_CONTINUE;
+
 	cd->single_tap_pressed = false;
 	cd->double_tap_pressed = false;
 	cd->finger_in_fod = false;
@@ -421,6 +444,7 @@ static int gsx_gesture_before_resume(struct goodix_ts_core *cd,
 	disable_irq_wake(cd->irq);
 	hw_ops->reset(cd, GOODIX_NORMAL_RESET_DELAY_MS);
 
+	cd->ts_state = TS_NORMAL;
 	return EVT_CANCEL_RESUME;
 }
 

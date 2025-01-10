@@ -1847,7 +1847,7 @@ static int goodix_ts_suspend(struct goodix_ts_core *core_data)
 	return rc;
 }
 
-static int goodix_ts_suspend_locked(struct goodix_ts_core *core_data)
+int goodix_ts_suspend_locked(struct goodix_ts_core *core_data)
 {
 	struct goodix_ext_module *ext_module, *next;
 	struct goodix_ts_hw_ops *hw_ops = core_data->hw_ops;
@@ -1894,6 +1894,9 @@ static int goodix_ts_suspend_locked(struct goodix_ts_core *core_data)
 	else
 		goodix_ts_power_off(core_data);
 
+	// we expect ts_mutex is locked
+	core_data->ts_state = TS_SLEEP;
+
 	/* inform exteranl modules */
 	mutex_lock(&goodix_modules.mutex);
 	if (!list_empty(&goodix_modules.head)) {
@@ -1935,7 +1938,7 @@ static int goodix_ts_resume(struct goodix_ts_core *core_data)
 	return rc;
 }
 
-static int goodix_ts_resume_locked(struct goodix_ts_core *core_data)
+int goodix_ts_resume_locked(struct goodix_ts_core *core_data)
 {
 	struct goodix_ext_module *ext_module, *next;
 	struct goodix_ts_hw_ops *hw_ops = core_data->hw_ops;
@@ -1947,7 +1950,11 @@ static int goodix_ts_resume_locked(struct goodix_ts_core *core_data)
 
 	ts_info("Resume start");
 	atomic_set(&core_data->suspended, 0);
-	hw_ops->irq_enable(core_data, false);
+
+	// If we're being called from sleep state
+	// don't disable IRQ since it's disabled already.
+	if (core_data->ts_state != TS_SLEEP)
+		hw_ops->irq_enable(core_data, false);
 
 	mutex_lock(&goodix_modules.mutex);
 	if (!list_empty(&goodix_modules.head)) {
@@ -1973,6 +1980,8 @@ static int goodix_ts_resume_locked(struct goodix_ts_core *core_data)
 		hw_ops->resume(core_data);
 	else
 		goodix_ts_power_on(core_data);
+
+	core_data->ts_state = TS_NORMAL;
 
 	mutex_lock(&goodix_modules.mutex);
 	if (!list_empty(&goodix_modules.head)) {

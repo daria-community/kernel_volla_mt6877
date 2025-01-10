@@ -378,6 +378,13 @@ enum touch_point_status {
 	TS_RELEASE,
 	TS_TOUCH,
 };
+
+enum ts_work_mode {
+	TS_NORMAL,
+	TS_GESTURE,
+	TS_SLEEP,
+};
+
 /* coordinate package */
 struct goodix_ts_coords {
 	int status; /* NONE, RELEASE, TOUCH */
@@ -522,6 +529,7 @@ struct goodix_ts_core {
 	bool double_tap_pressed;
 	int power_on;
 	int irq;
+	int ts_state;
 	size_t irq_trig_cnt;
 
 	atomic_t irq_enabled;
@@ -697,5 +705,8 @@ int inspect_module_init(void);
 void inspect_module_exit(void);
 int goodix_tools_init(void);
 void goodix_tools_exit(void);
+
+int goodix_ts_suspend_locked(struct goodix_ts_core *core_data);
+int goodix_ts_resume_locked(struct goodix_ts_core *core_data);
 
 #endif
