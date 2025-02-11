@@ -229,6 +229,7 @@ struct fts_ts_data {
     spinlock_t irq_lock;
     struct mutex report_mutex;
     struct mutex bus_lock;
+    struct mutex gesture_lock;
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 4, 0))
     struct wakeup_source ws;
 #endif
@@ -256,15 +257,17 @@ struct fts_ts_data {
     bool prc_support;
     bool prc_mode;
     bool esd_support;
-    bool fod_mode;
     bool proximity_mode;
     bool fhp_mode;
 
     bool fwdbg_support;
     bool gesture_support;   /* gesture enable or disable, default: disable */
+    u8 gesture_requested;
     u8 gesture_bmode;       /*gesture buffer mode*/
 
-    int fod_fp_down;
+    bool single_tap_pressed;
+    bool double_tap_pressed;
+    bool fod_fp_down;
     int edgepalm_value;
     int fwdbg_value;
 
@@ -334,6 +337,11 @@ enum _FTS_FW_MODE {
     FW_MODE_GESTURE = 0x66,
 };
 
+enum _FTS_GESTURE_TYPE {
+	FLAG_SINGLE_TAP = BIT(0),
+	FLAG_DOUBLE_TAP = BIT(1),
+	FLAG_FOD_PRESS  = BIT(2)
+};
 
 /*****************************************************************************
 * Global variable or extern global variabls/functions
@@ -362,7 +370,12 @@ int fts_gesture_suspend(struct fts_ts_data *ts_data);
 int fts_gesture_resume(struct fts_ts_data *ts_data);
 
 #if FTS_FOD_EN
-void fts_fod_enable(int enable);
+int fts_fod_readdata(struct fts_ts_data *ts_data);
+
+static inline int fts_fod_checkdown(struct fts_ts_data *ts_data)
+{
+    return (ts_data->gesture_support && ts_data->fod_fp_down);
+}
 #endif
 
 /* Apk and functions */

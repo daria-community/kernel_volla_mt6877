@@ -35,13 +35,8 @@
 #include <linux/of_device.h>
 #include <linux/of_gpio.h>
 #include <linux/of_irq.h>
-//#if IS_ENABLED(CONFIG_DRM_MEDIATEK)
-//#include "mtk_disp_notify.h"
-//#include "mtk_panel_ext.h"
-//#elif IS_ENABLED(CONFIG_FB)
-#include <linux/notifier.h>
-#include <linux/fb.h>
-//#endif
+
+#include "mtk_disp_notify.h"
 
 #include "focaltech_core.h"
 
@@ -63,10 +58,6 @@
 * Global variable or extern global variabls/functions
 *****************************************************************************/
 struct fts_ts_data *fts_data;
-
-#if FTS_FOD_EN
-static int fts_fod_recovery(struct fts_ts_data *ts_data);
-#endif
 
 /*****************************************************************************
 * Static function prototypes
@@ -144,9 +135,6 @@ void fts_tp_state_recovery(struct fts_ts_data *ts_data)
         fts_proximity_recovery(ts_data);
         return;
     }
-#endif
-#if FTS_FOD_EN
-    fts_fod_recovery(ts_data);
 #endif
     fts_gesture_recovery(ts_data);
 }
@@ -475,143 +463,6 @@ static int fts_read_customer_information(struct fts_ts_data *ts_data)
 
 
     FTS_INFO("customer info:%s", ts_data->customer_info);
-    return 0;
-}
-#endif
-
-#if FTS_FOD_EN
-static void fts_fod_set_reg(int value)
-{
-    int i = 0;
-    u8 fod_val = value ? FTS_VAL_FOD_ENABLE : DISABLE;
-    u8 regval = 0xFF;
-
-    for (i = 0; i < FTS_MAX_RETRIES_WRITEREG; i++) {
-        fts_read_reg(FTS_REG_FOD_MODE_EN, &regval);
-        if (regval == fod_val)
-            break;
-        fts_write_reg(FTS_REG_FOD_MODE_EN, fod_val);
-        fts_msleep(1);
-    }
-
-    if (i >= FTS_MAX_RETRIES_WRITEREG)
-        FTS_ERROR("set fod mode to %x failed,reg_val:%x", fod_val, regval);
-    else if (i > 0)
-        FTS_INFO("set fod mode to %x successfully", fod_val);
-}
-
-void fts_fod_enable(int enable)
-{
-    struct fts_ts_data *ts_data = fts_data;
-
-    ts_data->fod_fp_down = false;
-    if (enable) {
-        FTS_INFO("Fod enable");
-        ts_data->fod_mode = ENABLE;
-        fts_fod_set_reg(FTS_VAL_FOD_ENABLE);
-    } else {
-        FTS_INFO("Fod disable");
-        ts_data->fod_mode = DISABLE;
-        fts_fod_set_reg(DISABLE);
-    }
-}
-
-/*****************************************************************************
-* Name: fts_fod_readdata
-* Brief: read fod value from TP, check whether having FOD event or not,
-*        and report the state to host if need.
-*
-* Input: ts_data
-* Output:
-* Return: return negative code if error occurs,return 0 or 1 if success.
-*         return 0 if continue report finger touches.
-*         return 1(FTS_RETVAL_IGNORE_TOUCHES) if you want to ingore this
-*         finger reporting, As default, the following situation will report 1:
-*               a.System in suspend state, now not handle gesture.
-*****************************************************************************/
-static int fts_fod_readdata(struct fts_ts_data *ts_data)
-{
-    int ret = 0;
-    int fod_x = 0;
-    int fod_y = 0;
-    int fod_pointid = 0;
-    int fod_down = 0;
-    u8 fod_val[FTS_FOD_BUF_LEN] = { 0 };
-    u8 fod_cmd = FTS_REG_FOD_DATA;
-    struct input_dev *input_dev = ts_data->input_dev;
-
-    ret = fts_read(&fod_cmd, 1, fod_val, FTS_FOD_BUF_LEN);
-    if (ret < 0) {
-        FTS_ERROR("read fod data failed,ret=%d", ret);
-        return ret;
-    }
-
-    if (fod_val[1] == 0x26) {
-        fod_pointid = fod_val[0];
-        fod_x = (fod_val[4] << 8) + fod_val[5];
-        fod_y = (fod_val[6] << 8) + fod_val[7];
-        fod_down = (fod_val[8] == 0) ? 1 : 0;
-        FTS_DEBUG("FOD data:%x %x %x %x[%x,%x][%x]", fod_val[0], fod_val[1],
-                  fod_val[2], fod_val[3], fod_x, fod_y, fod_val[8]);
-        if (fod_down && !(ts_data->fod_fp_down)) {
-            /* FOD down, need do something to tell host */
-            ts_data->fod_fp_down = true;
-            input_report_key(input_dev, KEY_FOD_DOWN, 1);
-            input_sync(input_dev);
-            input_report_key(input_dev, KEY_FOD_DOWN, 0);
-            input_sync(input_dev);
-            FTS_INFO("report fod down");
-        } else if (!fod_down){
-            /* FOD up, need do something to tell host */
-            ts_data->fod_fp_down = false;
-            input_report_key(input_dev, KEY_FOD_UP, 1);
-            input_sync(input_dev);
-            input_report_key(input_dev, KEY_FOD_UP, 0);
-            input_sync(input_dev);
-            FTS_INFO("report fod up");
-        }
-
-        ret = (ts_data->suspended) ? FTS_RETVAL_IGNORE_TOUCHES : 0;
-    } else {
-        ret = 0;
-    }
-
-    return ret;
-}
-
-static int fts_fod_recovery(struct fts_ts_data *ts_data)
-{
-    if (ts_data->fod_mode) {
-        fts_fod_set_reg(FTS_VAL_FOD_ENABLE);
-    }
-    return 0;
-}
-
-/*****************************************************************************
-* Name: fts_fod_checkdown
-* Brief: check fod down event is triggered, it's used to reset TP or not when
-*        resuming.
-*
-* Input: ts_data
-* Output:
-* Return: return 1 if having fod down event, or else return 0
-*****************************************************************************/
-static int fts_fod_checkdown(struct fts_ts_data *ts_data)
-{
-    return (ts_data->fod_mode && ts_data->fod_fp_down);
-}
-
-static int fts_fod_suspend(struct fts_ts_data *ts_data)
-{
-    ts_data->fod_fp_down = false;
-    fts_fod_set_reg(FTS_VAL_FOD_ENABLE);
-    return 0;
-}
-
-static int fts_fod_resume(struct fts_ts_data *ts_data)
-{
-    if (!fts_fod_checkdown(ts_data)) fts_fod_set_reg(FTS_VAL_FOD_ENABLE);
-    ts_data->fod_fp_down = false;
     return 0;
 }
 #endif
@@ -1186,21 +1037,15 @@ static int fts_read_parse_touchdata(struct fts_ts_data *ts_data, u8 *touch_buf)
             return TOUCH_IGNORE;
     }
 #endif
-
-#if FTS_FOD_EN
-    if (ts_data->fod_mode) {
-        if (fts_fod_readdata(ts_data) == FTS_RETVAL_IGNORE_TOUCHES)
-            return TOUCH_IGNORE;
-    }
-#endif
-
     if (ts_data->suspended && ts_data->gesture_support) {
-        if (fts_gesture_readdata(ts_data, touch_buf) == FTS_RETVAL_IGNORE_TOUCHES)
-            return TOUCH_IGNORE;
+#if FTS_FOD_EN
+        fts_fod_readdata(ts_data);
+#endif
+        fts_gesture_readdata(ts_data, touch_buf);
     }
 
     if (ts_data->suspended) {
-        FTS_INFO("In suspend state, not report touch points");
+        //FTS_INFO("In suspend state, not report touch points");
         return TOUCH_IGNORE;
     }
 
@@ -1707,7 +1552,7 @@ static int fts_power_suspend(struct fts_ts_data *ts_data)
     return 0;
 }
 
-static int fts_power_resume(struct fts_ts_data *ts_data)
+int fts_power_resume(struct fts_ts_data *ts_data)
 {
     FTS_FUNC_ENTER();
 
@@ -1929,6 +1774,7 @@ static int fts_ts_suspend(struct device *dev)
         return 0;
     }
 
+    ts_data->gesture_support = !!ts_data->gesture_requested;
     ts_data->need_work_in_suspend = false;
     fts_esdcheck_suspend(ts_data);
 #if FTS_PSENSOR_EN
@@ -1938,13 +1784,6 @@ static int fts_ts_suspend(struct device *dev)
         fts_release_all_finger();
         ts_data->suspended = true;
         return 0;
-    }
-#endif
-
-#if FTS_FOD_EN
-    if (ts_data->fod_mode) {
-        fts_fod_suspend(ts_data);
-        ts_data->need_work_in_suspend = true;
     }
 #endif
 
@@ -2014,11 +1853,6 @@ static int fts_ts_resume(struct device *dev)
     if (ts_data->gesture_support) {
         fts_gesture_resume(ts_data);
     }
-#if FTS_FOD_EN
-    if (ts_data->fod_mode) {
-        fts_fod_resume(ts_data);
-    }
-#endif
     fts_ex_mode_recovery(ts_data);
     fts_esdcheck_resume(ts_data);
 
@@ -2030,6 +1864,7 @@ static int fts_ts_resume(struct device *dev)
         fts_irq_enable();
     }
 
+    ts_data->gesture_support = !!ts_data->gesture_requested;
     FTS_FUNC_EXIT();
     return 0;
 }
@@ -2043,77 +1878,50 @@ static void fts_resume_work(struct work_struct *work)
 static int fb_notifier_callback(struct notifier_block *self, unsigned long event, void *v)
 {
     struct fts_ts_data *ts_data = container_of(self, struct fts_ts_data, fb_notif);
+    int blank;
     FTS_FUNC_ENTER();
-    if (ts_data && v) {
-//#if IS_ENABLED(CONFIG_DRM_MEDIATEK)
-//        const unsigned long event_enum[2] = {MTK_DISP_EARLY_EVENT_BLANK, MTK_DISP_EVENT_BLANK};
-//        const int blank_enum[2] = {MTK_DISP_BLANK_POWERDOWN, MTK_DISP_BLANK_UNBLANK};
-//        int blank_value = *((int *)v);
-//#elif IS_ENABLED(CONFIG_FB)
-        const unsigned long event_enum[2] = {FB_EARLY_EVENT_BLANK, FB_EVENT_BLANK};
-        const int blank_enum[2] = {FB_BLANK_POWERDOWN, FB_BLANK_UNBLANK};
-        int blank_value = *((int *)(((struct fb_event *)v)->data));
-//#endif
-        FTS_INFO("notifier,event:%lu,blank:%d", event, blank_value);
-        if ((blank_enum[1] == blank_value) && (event_enum[1] == event)) {
-            queue_work(fts_data->ts_workqueue, &fts_data->resume_work);
-        } else if ((blank_enum[0] == blank_value) && (event_enum[0] == event)) {
-            cancel_work_sync(&fts_data->resume_work);
-            fts_ts_suspend(ts_data->dev);
-        } else {
-            FTS_DEBUG("notifier,event:%lu,blank:%d, not care", event, blank_value);
-        }
-    } else {
+    if (!ts_data || !v) {
         FTS_ERROR("ts_data/v is null");
         return -EINVAL;
     }
+
+    blank = *((int *)v);
+    switch (event) {
+        case MTK_DISP_EARLY_EVENT_BLANK:
+            if (blank == MTK_DISP_BLANK_UNBLANK ||
+                blank == MTK_DISP_BLANK_DOZE_DISABLE) {
+                FTS_ERROR("Early unblank/doze disable, resume work");
+                queue_work(fts_data->ts_workqueue, &fts_data->resume_work);
+            }
+            break;
+        case MTK_DISP_EVENT_BLANK:
+            if (blank == MTK_DISP_BLANK_POWERDOWN ||
+                blank == MTK_DISP_BLANK_DOZE_ENABLE) {
+                FTS_ERROR("Powerdown/doze, suspend work");
+                cancel_work_sync(&fts_data->resume_work);
+                fts_ts_suspend(ts_data->dev);
+            }
+            break;
+        default:
+            FTS_ERROR("not care event:%lu, blank:%d", event, blank);
+            break;
+    }
+
+    FTS_ERROR("event:%lu, blank:%d", event, blank);
     FTS_FUNC_EXIT();
     return 0;
 }
-
-//#if IS_ENABLED(CONFIG_DRM_MEDIATEK)
-/*The function will be called while LCD is recovering*/
-/*static int fts_tp_reinit(void)
-{
-    struct fts_ts_data *ts_data = fts_data;
-
-    FTS_INFO("tp power on reinit after lcd recovery");
-    if (ts_data->suspended) {
-        FTS_INFO("in suspend state, return");
-        return 0;
-    }
-    //Nothing to do, reserved for special case.
-    //fts_release_all_finger();
-    //fts_tp_state_recovery(ts_data);
-    return 0;
-}*/
-//#endif
 
 static int fts_notifier_callback_init(struct fts_ts_data *ts_data)
 {
     int ret = 0;
     FTS_FUNC_ENTER();
-/*#if IS_ENABLED(CONFIG_DRM_MEDIATEK)
     FTS_INFO("init notifier with mtk_disp_notifier_register");
     ts_data->fb_notif.notifier_call = fb_notifier_callback;
     ret = mtk_disp_notifier_register("fts_ts_notifier", &ts_data->fb_notif);
     if (ret < 0) {
         FTS_ERROR("[DRM]mtk_disp_notifier_register fail: %d", ret);
     }
-
-    FTS_INFO("init TP power on reinit!");
-    if (mtk_panel_tch_handle_init()) {
-        void **ret = mtk_panel_tch_handle_init();
-        *ret = (void *)fts_tp_reinit;
-    }*/
-//#elif IS_ENABLED(CONFIG_FB)
-    FTS_INFO("init notifier with fb_register_client");
-    ts_data->fb_notif.notifier_call = fb_notifier_callback;
-    ret = fb_register_client(&ts_data->fb_notif);
-    if (ret) {
-        FTS_ERROR("[FB]Unable to register fb_notifier: %d", ret);
-    }
-//#endif
     FTS_FUNC_EXIT();
     return ret;
 }
@@ -2121,13 +1929,8 @@ static int fts_notifier_callback_init(struct fts_ts_data *ts_data)
 static int fts_notifier_callback_exit(struct fts_ts_data *ts_data)
 {
     FTS_FUNC_ENTER();
-//#if IS_ENABLED(CONFIG_DRM_MEDIATEK)
-//    if (mtk_disp_notifier_unregister(&ts_data->fb_notif))
-//        FTS_ERROR("[DRM]Error occurred while unregistering disp_notifier.");
-//#elif IS_ENABLED(CONFIG_FB)
-    if (fb_unregister_client(&ts_data->fb_notif))
-        FTS_ERROR("[FB]Error occurred while unregistering fb_notifier.");
-//#endif
+    if (mtk_disp_notifier_unregister(&ts_data->fb_notif))
+        FTS_ERROR("[DRM]Error occurred while unregistering disp_notifier.");
     FTS_FUNC_EXIT();
     return 0;
 }
