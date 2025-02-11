@@ -42,281 +42,12 @@
 #include "../mediatek/mtk_corner_pattern/mtk_data_hw_roundedpattern.h"
 #endif
 #include "include/panel-ml-vtdr6126-vdo.h"
-/* i2c control start */
-#define LCM_I2C_ID_NAME "I2C_LCD_BIAS"
-static struct i2c_client *_lcm_i2c_client;
+#include "include/panel-ml-vtdr6126-vdo-gamma.h"
 /*PRIZE:Added by lvyuanchuan,X9-678,20221230 start*/
-#define BLK_LEVEL_OFFSET			(0)
-#define BLK_LEVEL_MAP3				(4095)
 extern int mtk_drm_esd_check_status(void);
 extern void mtk_drm_esd_set_status(int status);
 /*PRIZE:Added by lvyuanchuan,X9-678,20221230 end*/
-/*PRIZE:Added by lvyuanchuan,X9-534,20230103 start*/
-static unsigned int Gamma_to_level[] = {
-0     ,
-1     ,
-2     ,
-3     ,
-4     ,
-5     ,
-7     ,
-9     ,
-11    ,
-13    ,
-15    ,
-18    ,
-20    ,
-23    ,
-26    ,
-29    ,
-32    ,
-35    ,
-38    ,
-41    ,
-44    ,
-48    ,
-51    ,
-55    ,
-59    ,
-62    ,
-66    ,
-70    ,
-74    ,
-78    ,
-82    ,
-86    ,
-90    ,
-95    ,
-99    ,
-104   ,
-108   ,
-113   ,
-117   ,
-122   ,
-127   ,
-131   ,
-136   ,
-141   ,
-146   ,
-151   ,
-156   ,
-161   ,
-167   ,
-172   ,
-177   ,
-183   ,
-188   ,
-193   ,
-199   ,
-205   ,
-210   ,
-216   ,
-222   ,
-227   ,
-233   ,
-239   ,
-245   ,
-251   ,
-257   ,
-263   ,
-269   ,
-275   ,
-281   ,
-288   ,
-294   ,
-300   ,
-307   ,
-313   ,
-320   ,
-326   ,
-333   ,
-339   ,
-346   ,
-352   ,
-359   ,
-366   ,
-373   ,
-380   ,
-387   ,
-393   ,
-400   ,
-407   ,
-414   ,
-422   ,
-429   ,
-436   ,
-443   ,
-450   ,
-458   ,
-465   ,
-472   ,
-480   ,
-487   ,
-495   ,
-502   ,
-510   ,
-517   ,
-525   ,
-533   ,
-540   ,
-548   ,
-556   ,
-564   ,
-572   ,
-579   ,
-587   ,
-595   ,
-603   ,
-611   ,
-619   ,
-628   ,
-636   ,
-644   ,
-652   ,
-660   ,
-669   ,
-677   ,
-685   ,
-694   ,
-702   ,
-710   ,
-719   ,
-727   ,
-736   ,
-745   ,
-753   ,
-762   ,
-771   ,
-779   ,
-788   ,
-797   ,
-806   ,
-814   ,
-823   ,
-832   ,
-841   ,
-850   ,
-859   ,
-868   ,
-877   ,
-886   ,
-895   ,
-905   ,
-914   ,
-923   ,
-932   ,
-942   ,
-951   ,
-960   ,
-970   ,
-979   ,
-988   ,
-998   ,
-1007  ,
-1017  ,
-1026  ,
-1036  ,
-1046  ,
-1055  ,
-1065  ,
-1075  ,
-1084  ,
-1094  ,
-1104  ,
-1114  ,
-1124  ,
-1133  ,
-1143  ,
-1153  ,
-1163  ,
-1173  ,
-1183  ,
-1193  ,
-1203  ,
-1213  ,
-1224  ,
-1234  ,
-1244  ,
-1254  ,
-1264  ,
-1275  ,
-1285  ,
-1295  ,
-1306  ,
-1316  ,
-1326  ,
-1337  ,
-1347  ,
-1358  ,
-1368  ,
-1379  ,
-1389  ,
-1400  ,
-1411  ,
-1421  ,
-1432  ,
-1443  ,
-1453  ,
-1464  ,
-1475  ,
-1486  ,
-1497  ,
-1508  ,
-1518  ,
-1529  ,
-1540  ,
-1551  ,
-1562  ,
-1573  ,
-1584  ,
-1595  ,
-1606  ,
-1618  ,
-1629  ,
-1640  ,
-1651  ,
-1662  ,
-1674  ,
-1685  ,
-1696  ,
-1707  ,
-1719  ,
-1730  ,
-1742  ,
-1753  ,
-1764  ,
-1776  ,
-1787  ,
-1799  ,
-1810  ,
-1822  ,
-1834  ,
-1845  ,
-1857  ,
-1869  ,
-1880  ,
-1892  ,
-1904  ,
-1915  ,
-1927  ,
-1939  ,
-1951  ,
-1963  ,
-1975  ,
-1987  ,
-1999  ,
-2010  ,
-2022  ,
-2034  ,
-2047  ,
-/* prize modified by gongtaitao for x9 lava hbm mode 20230421 start */
-3765  ,
-3895  ,
-3997  ,
-4095
-/* prize modified by gongtaitao for x9 lava hbm mode 20230421 end */
-};
-/*PRIZE:Added by lvyuanchuan,X9-534,20230103 end*/
+
 //prize add by wangfei for lcd hardware info 20210726 start
 #if defined(CONFIG_PRIZE_HARDWARE_INFO)
 #include "../../../misc/prize/hardware_info/hardware_info.h"
@@ -324,39 +55,7 @@ extern struct hardware_info current_lcm_info;
 #endif
 //prize add by wangfei for lcd hardware info 20210726 end
 
-
-//prize add by wangfei for HBM 20210906 start
-unsigned int bl_level;
-//prize add by wangfei for HBM 20210906 end
 static struct lcm *g_ctx;
-
-static atomic_t current_backlight;
-
-/*****************************************************************************
- * Data Structure
- *****************************************************************************/
-
-/* prize modified by gongtaitao for x9 lava hbm mode 20230421 start */
-#define NORMAL_MAX_LEVEL 255
-#define HBM_MAX_LEVEL 259
-#define CONTINUOUS_HBM_TIMES 600
-#define CONTINUOUS_NORMAL_TIMES 200
-#define NORMAL_TIMES 100
-static struct timer_list check_level_timer;
-static struct work_struct check_level_worker;
-static unsigned int g_max_set_level = HBM_MAX_LEVEL;
-static unsigned int g_current_level = 0;
-extern int prize_mt_leds_set_max_brightness(char *name, int percent, bool enable);
-/* prize modified by gongtaitao for x9 lava hbm mode 20230421 end */
-
-/*****************************************************************************
- * Function
- *****************************************************************************/
-
-#ifdef VENDOR_EDIT
-// shifan@bsp.tp 20191226 add for loading tp fw when screen lighting on
-extern void lcd_queue_load_tp_fw(void);
-#endif /*VENDOR_EDIT*/
 
 /***********************************/
 
@@ -372,8 +71,9 @@ struct lcm {
 	bool enabled;
 
 	bool hbm_en;
-	bool hbm_wait;
-	bool hbm_stat;           //0Î´ÔÚHBM  1ÔÚHBM
+
+	unsigned int bl_level;
+	atomic_t reg_level;
 
 	int error;
 };
@@ -451,14 +151,12 @@ static void lcm_panel_get_data(struct lcm *ctx)
 static void lcm_pannel_reconfig_blk(struct lcm *ctx)
 {
 	char bl_tb0[] = {0x51,0x07,0xFF};
-	unsigned int reg_level = 125;
-	pr_err("[%s][%d]bl_level:%d , esd:%d \n",__func__,__LINE__,bl_level ,mtk_drm_esd_check_status());
-	if(mtk_drm_esd_check_status()){
+	unsigned int reg_level = 0;
+	if (mtk_drm_esd_check_status()) {
 		/*PRIZE:Added by lvyuanchuan,X9-534,20230103*/
-		if(bl_level)
-			reg_level = Gamma_to_level[bl_level] + BLK_LEVEL_OFFSET;
-		else
-			reg_level = 0;
+		if(ctx->bl_level)
+			reg_level = Gamma_to_level[ctx->bl_level];
+
 		bl_tb0[1] = (reg_level>>8)&0xf;
 		bl_tb0[2] = (reg_level)&0xff;
 		lcm_dcs_write(ctx,bl_tb0,ARRAY_SIZE(bl_tb0));
@@ -477,7 +175,6 @@ static void lcm_panel_init(struct lcm *ctx)
 		return;
 	}
 
-	pr_err("gezi----------%s----%d,bl_level %d\n",__func__,__LINE__,bl_level);
 	gpiod_set_value(ctx->reset_gpio, 0);
 	udelay(10 * 1000);
 	gpiod_set_value(ctx->reset_gpio, 1);
@@ -497,7 +194,7 @@ static void lcm_panel_init(struct lcm *ctx)
 	udelay(100);
 	lcm_dcs_write_seq_static(ctx,0x35,0x00);
 //	lcm_dcs_write_seq_static(ctx,0x51,0x07,0xFF);
-	lcm_dcs_write_seq_static(ctx,0x53,0x20);
+	lcm_dcs_write_seq_static(ctx,0x53,0x28);
 	lcm_dcs_write_seq_static(ctx,0x6C,0x02); //120Hz 6C=00;90Hz 6C=01;60Hz 6C=02
 	lcm_dcs_write_seq_static(ctx,0x6D,0x00);
 	lcm_dcs_write_seq_static(ctx,0x6F,0x01);
@@ -509,6 +206,8 @@ static void lcm_panel_init(struct lcm *ctx)
 	lcm_dcs_write_seq_static(ctx,0xB1,0x01,0xCB,0x00,0x24,0x00,0x30,0x00,0x01,0xCB,0x00,0x24,0x03,0x78,0x00,0x01,0xCB,0x00,0x24,0x00,0x30,0x00,0x01,0xCB,0x00,0x24,0x00,0x30,0x00);
 	udelay(100);
 	lcm_dcs_write_seq_static(ctx,0xB2,0x01,0xCB,0x00,0x24,0x00,0x30,0x03,0x01,0xCB,0x00,0x24,0x00,0x30,0x03,0x01,0xCB,0x00,0x24,0x00,0x30,0x03);
+	udelay(100);
+	lcm_dcs_write_seq_static(ctx,0xd0,0x84,0x06,0x80,0x14,0x3c,0x00,0x39,0x07,0x1b,0x19,0x00,0x00,0x03,0x25,0x0c,0x00,0x00,0x0b,0x06,0x66,0x1b,0x1b,0x1b);//改AVDD电压
 	udelay(100);
 	lcm_dcs_write_seq_static(ctx,0xFF,0x5A,0x80);
 	udelay(100);
@@ -544,7 +243,7 @@ static int lcm_disable(struct drm_panel *panel)
 
 	if (!ctx->enabled)
 		return 0;
-	pr_err("gezi----exit------%s-----%d\n",__func__,__LINE__);
+
 	if (ctx->backlight) {
 		ctx->backlight->props.power = FB_BLANK_POWERDOWN;
 		backlight_update_status(ctx->backlight);
@@ -559,8 +258,6 @@ static int lcm_unprepare(struct drm_panel *panel)
 {
 	struct lcm *ctx = panel_to_lcm(panel);
 
-	pr_err("gezi----------%s-----%d\n",__func__,__LINE__);
-
 	if (!ctx->prepared)
 		return 0;
 
@@ -572,7 +269,6 @@ static int lcm_unprepare(struct drm_panel *panel)
 	ctx->error = 0;
 	ctx->prepared = false;
 
-	pr_err("gezi------exit----%s-----%d\n",__func__,__LINE__);
 	//reset
 	ctx->reset_gpio =
 		devm_gpiod_get(ctx->dev, "reset", GPIOD_OUT_HIGH);
@@ -597,8 +293,6 @@ static int lcm_unprepare(struct drm_panel *panel)
 	devm_gpiod_put(ctx->dev, ctx->bias_neg);
 
 	udelay(3000);
-
-	pr_err("gezi----------%s-----%d\n",__func__,__LINE__);
 
 	//137  -  1.2
 	ctx->bias_pos = devm_gpiod_get_index(ctx->dev,
@@ -628,8 +322,6 @@ static int lcm_unprepare(struct drm_panel *panel)
 
 
 	ctx->hbm_en = false;
-	/*przie update hbm_stat X9LAVA-953 20230329*/
-	ctx->hbm_stat = false;
 	return 0;
 }
 
@@ -687,10 +379,6 @@ static int lcm_prepare(struct drm_panel *panel)
 
 	ctx->prepared = true;
 
-#if defined(CONFIG_MTK_PANEL_EXT)
-	//mtk_panel_tch_rst(panel);
-	pr_err("gezi----------%s-----%d\n",__func__,__LINE__);
-#endif
 #ifdef PANEL_SUPPORT_READBACK
 	lcm_panel_get_data(ctx);
 #endif
@@ -714,9 +402,6 @@ static int lcm_enable(struct drm_panel *panel)
 
 #define VAC (2436)
 #define HAC (1080)
-static u32 fake_heigh = 2436;
-static u32 fake_width = 1080;
-static bool need_fake_resolution;
 
 static const struct drm_display_mode switch_mode_120 = {
 	.clock = ((FRAME_WIDTH+MODE_2_HFP+HSA+HBP)*(FRAME_HEIGHT+MODE_2_VFP+VSA+VBP)*(MODE_2_FPS)/1000),
@@ -779,14 +464,10 @@ static int panel_ext_reset(struct drm_panel *panel, int on)
 static int panel_ata_check(struct drm_panel *panel)
 {
 	struct lcm *ctx = panel_to_lcm(panel);
-	//struct gpio_desc *id2_gpio = NULL;
 	struct mipi_dsi_device *dsi = to_mipi_dsi_device(ctx->dev);
 	unsigned char data[3] = {0x00, 0x00, 0x00};
-	//unsigned char id[3] = {0x0, 0x80, 0x0};
 	ssize_t ret;
-	pr_err("panel----exit------%s-----%d\n",__func__,__LINE__);
 
-	//lcm_dcs_write_seq_static(ctx,0xFE,0xC2);
 	ret = mipi_dsi_dcs_read(dsi, 0x04, data, 3);
 	if (ret < 0) {
 		pr_err("%s error\n", __func__);
@@ -802,66 +483,27 @@ static int panel_ata_check(struct drm_panel *panel)
 	return 0;
 }
 
-extern void prize_common_node_show_register(char* name,bool(*hbm_set)(void));
-bool get_hbmstate(void)
-{
-	printk("%s g_ctx->hbm_stat:%d",__func__, g_ctx->hbm_stat);
-	return g_ctx->hbm_stat;
-}
-
 static int lcm_setbacklight_cmdq(void *dsi, dcs_write_gce cb,
 	void *handle, unsigned int level)
 {
-	 char bl_tb0[] = {0x51,0x07,0xFF};
-	 char hbm_tb[] = {0x51,0x0F,0xFF};
-	 unsigned int level_normal = 125;
-	 unsigned int reg_level = 125;
-	 if(level > 259) /* prize modified by gongtaitao for x9 lava hbm mode 20230421 */
-	 {
-	 	if(level == 260)
-	 	{
-	 		printk("panel into HBM\n");
-			if (!cb)
-				return -1;
-			g_ctx->hbm_stat = true;
-			cb(dsi, handle, hbm_tb, ARRAY_SIZE(hbm_tb));
-	 	}
-	 	else if(level == 270)
-	 	{
-	 		/*PRIZE:Added by lvyuanchuan,X9-534,20230103*/
-			//level_normal = bl_level * BLK_LEVEL_MAP3/255 + BLK_LEVEL_OFFSET;
-			/*PRIZE:modify by durunshen,MT6877-98,20230530*/
-			level_normal = Gamma_to_level[bl_level] + BLK_LEVEL_OFFSET;
-			bl_tb0[1] = (level_normal>>8)&0xf;
-			bl_tb0[2] = (level_normal)&0xff;
-			if (!cb)
-				return -1;
-			printk("panel out HBM bl_level = %d\n",bl_level);
-			g_ctx->hbm_stat = false;
-			cb(dsi, handle, bl_tb0, ARRAY_SIZE(bl_tb0));
-	 	}
-	 }
-	else
-	 {
-	 	/*PRIZE:Added by lvyuanchuan,X9-534,20230103 */
-	 	if(level){
-			reg_level = Gamma_to_level[level] + BLK_LEVEL_OFFSET;
-			bl_level = level; //PRIZE:modify by durunshen,X9-1080,20230301
-			atomic_set(&current_backlight, reg_level);
-		}
-		else
-			reg_level = 0;
-        g_current_level = level;
-		bl_tb0[1] = (reg_level>>8)&0xf;
-		bl_tb0[2] = (reg_level)&0xff;
-		pr_err("level{ %d - %d },bl_tb0[1] = %d,bl_tb0[2] = %d\n",level,reg_level,bl_tb0[1],bl_tb0[2]);
-		if (!cb)
-			return -1;
-		if(g_ctx->hbm_stat == false || level == 0)//modify by zhangchao for X9LAVA-539
-			cb(dsi, handle, bl_tb0, ARRAY_SIZE(bl_tb0));
-		/*PRIZE:Added by lvyuanchuan,X9-678,20221230*/
+	char bl_tb0[] = {0x51,0x07,0xFF};
+	char hbm_tb[] = {0x51,0x0F,0xFF};
+	unsigned int reg_level = 0;
+
+	if (level && level <= BRIGHTNESS_HALF) {
+		reg_level = Gamma_to_level[level];
+		atomic_set(&g_ctx->reg_level, reg_level);
 	}
-	 return 0;
+
+	g_ctx->bl_level = level;
+	bl_tb0[1] = (reg_level>>8)&0xf;
+	bl_tb0[2] = (reg_level)&0xff;
+	pr_err("level{ %d - %d },bl_tb0[1] = %d,bl_tb0[2] = %d\n",level,reg_level,bl_tb0[1],bl_tb0[2]);
+	if (!cb)
+		return -1;
+
+	cb(dsi, handle, bl_tb0, ARRAY_SIZE(bl_tb0));
+	return 0;
 }
 
 
@@ -869,7 +511,7 @@ static int lcm_setbacklight_cmdq(void *dsi, dcs_write_gce cb,
 unsigned short led_level_disp_get(char *name)
 {
     int trans_level = 0;
-	trans_level = Gamma_to_level[g_current_level];
+	trans_level = Gamma_to_level[g_ctx->bl_level];
 	pr_err("[%s]: name: %s, level : %d",__func__, name, trans_level);
 	return trans_level;
 }
@@ -911,7 +553,7 @@ static int panel_hbm_set_cmdq(struct drm_panel *panel, void *dsi,
 	char hbm_tb0[] = {0x63, 0x10, 0x00, 0x07, 0xFF};
 	char hbm_tb1[] = {0x62, 0x03};
 	char normal_tb[] = {0x62,0x00};
-	unsigned int trans_level = atomic_read(&current_backlight);
+	unsigned int trans_level = atomic_read(&g_ctx->reg_level);
 	struct lcm *ctx = panel_to_lcm(panel);
 
 	if (!cb)
@@ -923,7 +565,6 @@ static int panel_hbm_set_cmdq(struct drm_panel *panel, void *dsi,
 	if (en)
 	{
 		printk("[panel] %s : set HBM, trans_level:%d\n",__func__,trans_level);
-		g_ctx->hbm_stat = true;
 
 		if (trans_level >= 335) {
 			hbm_tb0[1] = 0x10;
@@ -944,13 +585,11 @@ static int panel_hbm_set_cmdq(struct drm_panel *panel, void *dsi,
 	else
 	{
 		printk("[panel] %s : out HBM mode\n",__func__);
-		g_ctx->hbm_stat = false;
 
 		cb(dsi, handle, normal_tb, ARRAY_SIZE(normal_tb));
 	}
 
 	ctx->hbm_en = en;
-	ctx->hbm_wait = true;
 
  done:
 	return 0;
@@ -962,23 +601,7 @@ static void panel_hbm_get_state(struct drm_panel *panel, bool *state)
 
 	*state = ctx->hbm_en;
 }
-//drv-Resolve the problem of shining caused by out of sync between dimlayer and hbm-pengzhipeng-20231225-start
-static void panel_hbm_get_wait_state(struct drm_panel *panel, bool *wait)
-{
-	struct lcm *ctx = panel_to_lcm(panel);
 
-	*wait = ctx->hbm_wait;
-}
-
-static bool panel_hbm_set_wait_state(struct drm_panel *panel, bool wait)
-{
-	struct lcm *ctx = panel_to_lcm(panel);
-	bool old = ctx->hbm_wait;
-
-	ctx->hbm_wait = wait;
-	return old;
-}
-//drv-Resolve the problem of shining caused by out of sync between dimlayer and hbm-pengzhipeng-20231225-end
 static int lcm_get_virtual_heigh(void)
 {
 	return VAC;
@@ -1268,44 +891,15 @@ static int mtk_panel_ext_param_set(struct drm_panel *panel,
 	return ret;
 }
 
-static int panel_doze_enable(struct drm_panel *panel,
-	void *dsi, dcs_write_gce cb, void *handle)
-{
-	struct lcm *ctx = panel_to_lcm(panel);
-
-	pr_info("panel %s\n", __func__);
-//	lcm_dcs_write_seq_static(ctx, 0x51, 0x07, 0xFF);
-
-	return 0;
-}
-
-static int panel_doze_disable(struct drm_panel *panel,
-	void *dsi, dcs_write_gce cb, void *handle)
-{
-	struct lcm *ctx = panel_to_lcm(panel);
-
-	pr_info("panel %s\n", __func__);
-//	lcm_dcs_write_seq_static(ctx, 0x51, 0x00, 0xF0);
-
-	return 0;
-}
-
 static struct mtk_panel_funcs ext_funcs = {
 	.reset = panel_ext_reset,
 	.set_backlight_cmdq = lcm_setbacklight_cmdq,
 	.ata_check = panel_ata_check,
 	.hbm_set_cmdq = panel_hbm_set_cmdq,
 	.hbm_get_state = panel_hbm_get_state,
-	//drv-Resolve the problem of shining caused by out of sync between dimlayer and hbm-pengzhipeng-20231225-start
-	.hbm_get_wait_state = panel_hbm_get_wait_state,
-	.hbm_set_wait_state = panel_hbm_set_wait_state,
-	//drv-Resolve the problem of shining caused by out of sync between dimlayer and hbm-pengzhipeng-20231225-start
 	.get_virtual_heigh = lcm_get_virtual_heigh,
 	.get_virtual_width = lcm_get_virtual_width,
 	.ext_param_set = mtk_panel_ext_param_set,
-	/*aod mode*/
-	.doze_enable = panel_doze_enable,
-	.doze_disable = panel_doze_disable,
 };
 #endif
 
@@ -1327,32 +921,13 @@ struct panel_desc {
 		unsigned int unprepare;
 	} delay;
 };
-/*
-static void change_drm_disp_mode_params(struct drm_display_mode *mode)
-{
-	if (fake_heigh > 0 && fake_heigh < VAC) {
-		mode->vdisplay = fake_heigh;
-		mode->vsync_start = fake_heigh + VFP;
-		mode->vsync_end = fake_heigh + VFP + VSA;
-		mode->vtotal = fake_heigh + VFP + VSA + VBP;
-	}
-	if (fake_width > 0 && fake_width < HAC) {
-		mode->hdisplay = fake_width;
-		mode->hsync_start = fake_width + HFP;
-		mode->hsync_end = fake_width + HFP + HSA;
-		mode->htotal = fake_width + HFP + HSA + HBP;
-	}
-}
-*/
+
 static int lcm_get_modes(struct drm_panel *panel)
 {
 	struct drm_display_mode *mode;
 	struct drm_display_mode *mode_1;
 	struct drm_display_mode *mode_2;
 
-	//if (need_fake_resolution)
-	//	change_drm_disp_mode_params(&default_mode);
-	
 	mode = drm_mode_duplicate(panel->drm, &switch_mode_120);
 	if (!mode) {
 		dev_err(panel->drm->dev, "failed to add mode %ux%ux@%u\n",
@@ -1406,74 +981,6 @@ static const struct drm_panel_funcs lcm_drm_funcs = {
 	.get_modes = lcm_get_modes,
 };
 
-static void check_is_need_fake_resolution(struct device *dev)
-{
-	unsigned int ret = 0;
-
-	ret = of_property_read_u32(dev->of_node, "fake_heigh", &fake_heigh);
-	if (ret)
-		need_fake_resolution = false;
-	ret = of_property_read_u32(dev->of_node, "fake_width", &fake_width);
-	if (ret)
-		need_fake_resolution = false;
-	if (fake_heigh > 0 && fake_heigh < VAC)
-		need_fake_resolution = true;
-	if (fake_width > 0 && fake_width < HAC)
-		need_fake_resolution = true;
-	pr_err("%s------need_fake_resolution = %d------%d\n", __func__,need_fake_resolution,__LINE__);
-}
-
-/* prize modified by gongtaitao for x9 lava hbm mode 20230421 start */
-static void lcm_check_level_work(struct work_struct *work)
-{
-	static unsigned int hbm_times = 0;
-	static bool limit_max_level_flags = false;
-	static unsigned int limit_hbm_times = 0;
-	static unsigned int abnormal_times = 0;
-	static bool hbm_flags = false;
-
-	pr_err("%s g_current_level:%u, limit_max_level_flags:%d, hbm_times:%u, limit_hbm_times:%u, g_max_set_level:%u, abnormal_times:%u, hbm_flags:%d\n", __func__,
-		g_current_level, limit_max_level_flags, hbm_times, limit_hbm_times, g_max_set_level, abnormal_times, hbm_flags);
-
-	if (!limit_max_level_flags) {
-		if (g_current_level > NORMAL_MAX_LEVEL && g_current_level <= HBM_MAX_LEVEL) {
-			hbm_flags = true;
-			if (++hbm_times >= CONTINUOUS_HBM_TIMES) {
-				g_max_set_level = NORMAL_MAX_LEVEL;
-				hbm_times = 0;
-				limit_max_level_flags = true;
-				abnormal_times = 0;
-				hbm_flags = false;
-				pr_err("%s limit_max_level 255\n", __func__);
-				prize_mt_leds_set_max_brightness("lcd-backlight", NORMAL_MAX_LEVEL, 1);
-			}
-		} else if (hbm_flags && g_current_level <= NORMAL_MAX_LEVEL) {
-			if (++abnormal_times > NORMAL_TIMES) {
-				hbm_times = 0;
-				abnormal_times = 0;
-				hbm_flags = false;
-			}
-		}
-	} else {
-		if (++limit_hbm_times >= CONTINUOUS_NORMAL_TIMES) {
-			limit_max_level_flags = false;
-			limit_hbm_times = 0;
-			g_max_set_level = HBM_MAX_LEVEL;
-			pr_err("%s limit_max_level 259\n", __func__);
-			prize_mt_leds_set_max_brightness("lcd-backlight", HBM_MAX_LEVEL, 0);
-		}
-	}
-}
-
-static void lcm_check_level_timer(struct timer_list *list)
-{
-	schedule_work(&check_level_worker);
-
-	mod_timer(&check_level_timer,
-		jiffies +  msecs_to_jiffies(3000));
-}
-/* prize modified by gongtaitao for x9 lava hbm mode 20230421 end */
-
 static int lcm_probe(struct mipi_dsi_device *dsi)
 {
 	struct device *dev = &dsi->dev;
@@ -1481,8 +988,6 @@ static int lcm_probe(struct mipi_dsi_device *dsi)
 	struct device_node *backlight;
 	int ret;
 	struct device_node *dsi_node, *remote_node = NULL, *endpoint = NULL;
-
-	pr_err("gezi ---------%d-----\n",__LINE__);
 
 	dsi_node = of_get_parent(dev->of_node);
 	if (dsi_node) {
@@ -1524,8 +1029,6 @@ static int lcm_probe(struct mipi_dsi_device *dsi)
 			return -EPROBE_DEFER;
 	}
 
-	pr_err("gezi ---------%d-----\n",__LINE__);
-
 	ctx->reset_gpio = devm_gpiod_get(dev, "reset", GPIOD_OUT_HIGH);
 	if (IS_ERR(ctx->reset_gpio)) {
 		dev_err(dev, "%s: cannot get reset-gpios %ld\n",
@@ -1549,8 +1052,6 @@ static int lcm_probe(struct mipi_dsi_device *dsi)
 		return PTR_ERR(ctx->bias_neg);
 	}
 
-	pr_err("gezi ---------%d-----\n",__LINE__);
-
 	devm_gpiod_put(dev, ctx->bias_neg);
 
 	ctx->prepared = true;
@@ -1564,8 +1065,6 @@ static int lcm_probe(struct mipi_dsi_device *dsi)
 	if (ret < 0)
 		return ret;
 
-	pr_err("gezi ---------%d-----\n",__LINE__);
-
 	ret = mipi_dsi_attach(dsi);
 	if (ret < 0)
 		drm_panel_remove(&ctx->panel);
@@ -1576,21 +1075,11 @@ static int lcm_probe(struct mipi_dsi_device *dsi)
 	if (ret < 0)
 		return ret;
 #endif
-	check_is_need_fake_resolution(dev);
-	pr_err("%s------------%d\n", __func__,__LINE__);
 
 	//add by wangfei
 	// lcm_panel_init(ctx);
 	g_ctx = ctx;
 	ctx->hbm_en = false;
-	g_ctx->hbm_stat = false;
-	prize_common_node_show_register("HBMSTATE", &get_hbmstate);
-
-/* prize modified by gongtaitao for x9 lava hbm mode 20230421 start */
-	INIT_WORK(&check_level_worker, lcm_check_level_work);
-	timer_setup(&check_level_timer, lcm_check_level_timer, 0);
-	mod_timer(&check_level_timer, jiffies + msecs_to_jiffies(15000));
-	/* prize modified by gongtaitao for x9 lava hbm mode 20230421 end */
 
 #if defined(CONFIG_PRIZE_HARDWARE_INFO)
     strcpy(current_lcm_info.chip,"vtdr6126.vdo");
@@ -1607,7 +1096,6 @@ static int lcm_remove(struct mipi_dsi_device *dsi)
 
 	mipi_dsi_detach(dsi);
 	drm_panel_remove(&ctx->panel);
-	del_timer_sync(&check_level_timer); /* prize modified by gongtaitao for x9 lava hbm mode 20230421 */
 
 	return 0;
 }
