@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: GPL-2.0
+
+choice
+    prompt "Daria Product selection"
+    help
+      Select kernel build target
+
+config DARIA_PRODUCT_ZAHEDAN
+    bool "Zahedan"
+
+config DARIA_PRODUCT_QOQNOOS
+    bool "Qoqnoos"
+
+endchoice
