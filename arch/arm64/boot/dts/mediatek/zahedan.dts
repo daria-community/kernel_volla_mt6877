@@ -657,8 +657,6 @@
 #include "cust_zahedan.dtsi"
 #include "mediatek/cust_zahedan_touch_1080x2400.dtsi"
 #include "mediatek/cust_zahedan_camera.dtsi"
-#ifdef CONFIG_MTK_PUMP_EXPRESS_50_SUPPORT
 #include "mediatek/mtk_pe50.dtsi"
-#endif
 /*End of this file, DO NOT ADD ANYTHING HERE*/
 

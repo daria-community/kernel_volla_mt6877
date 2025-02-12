@@ -681,8 +681,6 @@
 #include "cust_qoqnoos.dtsi"
 #include "mediatek/cust_qoqnoos_touch_1080x2436.dtsi"
 #include "mediatek/cust_qoqnoos_camera.dtsi"
-#ifdef CONFIG_MTK_PUMP_EXPRESS_50_SUPPORT
 #include "mediatek/mtk_pe50_qoqnoos.dtsi"
-#endif
 /*End of this file, DO NOT ADD ANYTHING HERE*/
 

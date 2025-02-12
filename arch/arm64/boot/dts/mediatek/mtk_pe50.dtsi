@@ -11,7 +11,7 @@
  * GNU General Public License for more details.
  */
 
-&odm {
+&charger {
 	mtk_pe50 {
 		polling_interval = <10000>;
 		ta_cv_ss_repeat_tmin = <25>;
