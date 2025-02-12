@@ -656,8 +656,7 @@ static void backup_input_config(struct drm_mtk_layering_info *disp_info)
 
 	if (disp_info->layer_num[HRT_PRIMARY] <= 0 ||
 	    disp_info->input_config[HRT_PRIMARY] == NULL) {
-		mutex_unlock(&hrt_table_lock);
-		return;
+		goto unlock;
 	}
 
 	/* memory allocate */
@@ -667,12 +666,12 @@ static void backup_input_config(struct drm_mtk_layering_info *disp_info)
 
 	if (g_input_config == 0) {
 		DDPPR_ERR("%s: allocate memory fail\n", __func__);
-		mutex_unlock(&hrt_table_lock);
-		return;
+		goto unlock;
 	}
 
 	/* memory copy */
 	memcpy(g_input_config, disp_info->input_config[HRT_PRIMARY], size);
+unlock:
 	mutex_unlock(&hrt_table_lock);
 }
 

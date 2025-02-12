@@ -860,7 +860,7 @@ static void mtk_dsc_config(struct mtk_ddp_comp *comp,
 				(dsc_params->rc_range_parameters[14].range_min_qp & 0x1f);
 			mtk_ddp_write_relaxed(comp, reg_val, DISP_REG_DSC_PPS19, handle);
 		} else {
-		/*prize update 10bit pps dsc start - 20230423*/
+			/*prize update 10bit pps dsc start - 20230423*/
 			#ifdef CONFIG_DRM_PANEL_ML_VTDR6126_VDO
 			mtk_ddp_write(comp, 0x20000c03, DISP_REG_DSC_PPS6, handle);
 			mtk_ddp_write(comp, 0x330b0b06, DISP_REG_DSC_PPS7, handle);
