@@ -329,6 +329,11 @@ static int gsx_gesture_ist(struct goodix_ts_core *cd,
 			ts_info("get DOUBLE-TAP gesture");
 			cd->double_tap_pressed = true;
 			sysfs_notify(&gsx_gesture->module.kobj, NULL, "double_tap_pressed");
+			// UBPORTS: still report KEY_WAKUP events too
+			input_report_key(cd->input_dev, KEY_WAKEUP, 1);
+			input_sync(cd->input_dev);
+			input_report_key(cd->input_dev, KEY_WAKEUP, 0);
+			input_sync(cd->input_dev);
 		} else {
 			ts_debug("not enable DOUBLE-TAP");
 		}
