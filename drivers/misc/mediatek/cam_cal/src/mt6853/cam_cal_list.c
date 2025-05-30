@@ -38,6 +38,7 @@ struct stCAM_CAL_LIST_STRUCT g_camCalList[] = {
 		BL24SA64_write_region},
 	/*prize add by zhuzhengjiang start*/
 	{OV50A40_SENSOR_ID, 0xA0, Common_read_region},
+	{OV50A40TSP_SENSOR_ID, 0xB0, Common_read_region,MAX_EEPROM_SIZE_16K},
 	{OV50A40OIS_SENSOR_ID, 0xA0, Common_read_region},
 	{OV16A1Q_SENSOR_ID, 0xA0, Common_read_region},
 	{OV64B40_SENSOR_ID, 0xA4, Common_read_region},

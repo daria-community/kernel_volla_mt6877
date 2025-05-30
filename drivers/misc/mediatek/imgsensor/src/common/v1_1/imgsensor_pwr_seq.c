@@ -1588,6 +1588,21 @@ struct IMGSENSOR_HW_POWER_SEQ sensor_power_sequence[] = {
 #endif
 // prize add by linchong 20220228 end
 /*prize add by zhuzhengjaing start*/
+#if defined(OV50A40TSP_MIPI_RAW)
+		{
+			SENSOR_DRVNAME_OV50A40TSP_MIPI_RAW,
+			{
+				{RST, Vol_Low, 5},
+				{AVDD, Vol_2800, 5},
+				{DOVDD, Vol_1800, 5},
+				{DVDD, Vol_1100, 2},
+				{AFVDD, Vol_2800, 3},
+				{SensorMCLK, Vol_High, 0},
+                          	{PDN, Vol_High, 0},
+				{RST, Vol_High, 5},
+			},
+		},
+#endif
 #if defined(OV50A40_MIPI_RAW)
 	#if defined(CONFIG_DARIA_PRODUCT_QOQNOOS)
 		{

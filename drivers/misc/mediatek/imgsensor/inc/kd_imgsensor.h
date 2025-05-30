@@ -482,6 +482,7 @@
 /*prize add by zhuzhengjiang start*/
 #define OV50A40_SENSOR_ID                        0x565041
 #define OV50A40OIS_SENSOR_ID                    (0x565041+1)
+#define OV50A40TSP_SENSOR_ID                    (0x565041+2)
 #define OV50D40_SENSOR_ID                        0x565044
 #define OV16A1Q_SENSOR_ID                        0x561641+1
 #define S5K4H7YXNIGHT_SENSOR_ID                  (0x487b+2)
@@ -501,6 +502,7 @@
 
 #define SENSOR_DRVNAME_OV50A40_MIPI_RAW         "ov50a40_mipi_raw"
 #define SENSOR_DRVNAME_OV50A40OIS_MIPI_RAW      "ov50a40ois_mipi_raw"
+#define SENSOR_DRVNAME_OV50A40TSP_MIPI_RAW      "ov50a40tsp_mipi_raw"
 #define SENSOR_DRVNAME_OV50D40_MIPI_RAW         "ov50d40_mipi_raw"
 #define SENSOR_DRVNAME_OV16A1Q_MIPI_RAW         "ov16a1q_mipi_raw"
 #define SENSOR_DRVNAME_S5K4H7YXNIGHT_MIPI_RAW    "s5k4h7yxnight_mipi_raw"

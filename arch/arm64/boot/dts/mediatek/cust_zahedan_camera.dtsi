@@ -328,6 +328,20 @@
 			output-high;
 		};
 	};
+	camera_pins_cam0_pnd_0: cam0@4 {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO113__FUNC_GPIO113>;
+			slew-rate = <1>;
+			output-low;
+		};
+	};
+	camera_pins_cam0_pnd_1: cam0@5 {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO113__FUNC_GPIO113>;
+			slew-rate = <1>;
+			output-high;
+		};
+	};
 	camera_pins_default: camdefault {
 	};
 };
@@ -358,7 +372,8 @@
 			"cam3_mclk_2mA", "cam3_mclk_4mA",
 			"cam3_mclk_6mA", "cam3_mclk_8mA",
 			"cam3_pnd0", "cam3_pnd1",
-			"cam0_ldo_vcamaf_0", "cam0_ldo_vcamaf_1";
+			"cam0_ldo_vcamaf_0", "cam0_ldo_vcamaf_1",
+			"cam0_pnd0","cam0_pnd1";
 	pinctrl-0 = <&camera_pins_default>;
 	pinctrl-1 = <&camera_pins_cam0_rst_0>;
 	pinctrl-2 = <&camera_pins_cam0_rst_1>;
@@ -410,6 +425,8 @@
 
 	pinctrl-47 = <&camera_pins_cam0_af_0>;
 	pinctrl-48 = <&camera_pins_cam0_af_1>;
+	pinctrl-49 = <&camera_pins_cam0_pnd_0>;
+	pinctrl-50 = <&camera_pins_cam0_pnd_1>;
 
 	/* main (wide) : ldo4 ldo8 --- AVDD_CAM_W, DVDD_CAM_W */
 /*
@@ -442,7 +459,7 @@
 	cam2_vcamio-supply = <&mt_pmic_vcamio_ldo_reg>;
 	cam3_vcamio-supply = <&mt_pmic_vcamio_ldo_reg>;
 
-	cam0_enable_sensor = "ov50a40_mipi_raw ov50d40_mipi_raw";
+	cam0_enable_sensor = "ov50a40tsp_mipi_raw ov50a40_mipi_raw ov50d40_mipi_raw";
 	cam1_enable_sensor = "ov16a1q_mipi_raw";
 	cam2_enable_sensor = "gc08a3wide_mipi_raw gc05a2wide_mipi_raw";
 	cam3_enable_sensor = "gc02m1macro_mipi_raw";

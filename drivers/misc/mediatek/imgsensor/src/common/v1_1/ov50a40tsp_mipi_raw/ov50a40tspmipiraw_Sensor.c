@@ -2,7 +2,7 @@
  *
  * Filename:
  * ---------
- *   OV50A40_REAR_rear_mipiraw_Sensor.c
+ *   OV50A40TSP_REAR_rear_mipiraw_Sensor.c
  *
  * Project:
  * --------
@@ -33,28 +33,28 @@
 #include "kd_imgsensor_define.h"
 #include "kd_imgsensor_errcode.h"
 
-#include "ov50a40mipiraw_Sensor.h"
-#include "ov50a40_Sensor_setting.h"
-#define PFX "OV50A40_camera_sensor"
+#include "ov50a40tspmipiraw_Sensor.h"
+#include "ov50a40tsp_Sensor_setting.h"
+#define PFX "OV50A40TSP_camera_sensor"
 #define LOG_INF(format, args...)    \
 	pr_debug(PFX "[%s] " format, __func__, ##args)
 
 #define MULTI_WRITE 1
 
 #define PDAF_SUPPORT 1
-#define  OV50A40_MIRROR_FLIP_ENABLE 1
+#define  OV50A40TSP_MIRROR_FLIP_ENABLE 1
 #define  REMOSAIC_SUPPORT 1  // prize add by zhuzhengjiang for disable remosaic 
 #define  SENSOR_AGAIN_MAX_256 0  // prize add by zhuzhengjiang for  sensor gain 256 
 
 // prize add by chenwenhui start
-#define Module_Id 0xA6 //sunny
-#define Eeprom_Addr 0xA0
+#define Module_Id 0x50 //tsp
+#define Eeprom_Addr 0xB0
 // prize add by chenwenhui end
 
 static DEFINE_SPINLOCK(imgsensor_drv_lock);
 
 static struct imgsensor_info_struct imgsensor_info = {
-	.sensor_id = OV50A40_SENSOR_ID,
+	.sensor_id = OV50A40TSP_SENSOR_ID,
 
 	.checksum_value = 0x788279ef,
 
@@ -245,7 +245,7 @@ static struct imgsensor_info_struct imgsensor_info = {
 	.sensor_interface_type = SENSOR_INTERFACE_TYPE_MIPI,
 	.mipi_sensor_type = MIPI_CPHY, //0,MIPI_OPHY_NCSI2;  1,MIPI_OPHY_CSI2
 	.mipi_settle_delay_mode = 1,//0,MIPI_SETTLEDELAY_AUTO; 1,MIPI_SETTLEDELAY_MANNUAL
-#if OV50A40_MIRROR_FLIP_ENABLE
+#if OV50A40TSP_MIRROR_FLIP_ENABLE
 	#if REMOSAIC_SUPPORT
     	.sensor_output_dataformat = SENSOR_OUTPUT_FORMAT_RAW_4CELL_HW_BAYER_B,//sensor output first pixel color
 	#else
@@ -261,7 +261,7 @@ static struct imgsensor_info_struct imgsensor_info = {
 	.mclk = 24,
 	
 	.mipi_lane_num = SENSOR_MIPI_3_LANE,
-	.i2c_addr_table = {0x20,0xff},
+	.i2c_addr_table = {0x20,0x6c,0xff},
 	.i2c_speed = 1000,// i2c read/write speed
 	.mipi_hs_taril_value = 100 , // prize add by zhuzhengjiang for mipi hs_trail_value 20210619
 };
@@ -363,7 +363,7 @@ static struct SET_PD_BLOCK_INFO_T imgsensor_pd_info = {
 #define I2C_BUFFER_LEN 3
 #endif
 
-static kal_uint16 ov50a40_table_write_cmos_sensor(
+static kal_uint16 ov50a40tsp_table_write_cmos_sensor(
 					kal_uint16 *para, kal_uint32 len)
 {
 	char puSendCmd[I2C_BUFFER_LEN];
@@ -616,22 +616,22 @@ static void sensor_init(void)
 	write_cmos_sensor(0x0103, 0x01);//SW Reset, need delay
 	mdelay(10);
 	LOG_INF("sensor_init\n");
-	ov50a40_table_write_cmos_sensor(
-		addr_data_pair_init_ov50a40,
-		sizeof(addr_data_pair_init_ov50a40) / sizeof(kal_uint16));
+	ov50a40tsp_table_write_cmos_sensor(
+		addr_data_pair_init_ov50a40tsp,
+		sizeof(addr_data_pair_init_ov50a40tsp) / sizeof(kal_uint16));
 }
 
 static void preview_setting(void)
 {
 	LOG_INF("preview_setting RES_4000x3000_30fps\n");
 #if SENSOR_AGAIN_MAX_256
-	ov50a40_table_write_cmos_sensor(
-		addr_data_pair_ov50a40_4096_3072_gain256x,
-		sizeof(addr_data_pair_ov50a40_4096_3072_gain256x) / sizeof(kal_uint16));
+	ov50a40tsp_table_write_cmos_sensor(
+		addr_data_pair_ov50a40tsp_4096_3072_gain256x,
+		sizeof(addr_data_pair_ov50a40tsp_4096_3072_gain256x) / sizeof(kal_uint16));
 #else
-	ov50a40_table_write_cmos_sensor(
-		addr_data_pair_preview_ov50a40,
-		sizeof(addr_data_pair_preview_ov50a40) / sizeof(kal_uint16));
+	ov50a40tsp_table_write_cmos_sensor(
+		addr_data_pair_preview_ov50a40tsp,
+		sizeof(addr_data_pair_preview_ov50a40tsp) / sizeof(kal_uint16));
 #endif
 }
 
@@ -639,13 +639,13 @@ static void capture_setting(kal_uint16 currefps)
 {
 	LOG_INF("capture_setting currefps = %d\n",currefps);
 #if SENSOR_AGAIN_MAX_256
-	ov50a40_table_write_cmos_sensor(
-		addr_data_pair_ov50a40_4096_3072_gain256x,
-		sizeof(addr_data_pair_ov50a40_4096_3072_gain256x) / sizeof(kal_uint16));
+	ov50a40tsp_table_write_cmos_sensor(
+		addr_data_pair_ov50a40tsp_4096_3072_gain256x,
+		sizeof(addr_data_pair_ov50a40tsp_4096_3072_gain256x) / sizeof(kal_uint16));
 #else
-	ov50a40_table_write_cmos_sensor(
-		addr_data_pair_capture_ov50a40,
-		sizeof(addr_data_pair_capture_ov50a40) /
+	ov50a40tsp_table_write_cmos_sensor(
+		addr_data_pair_capture_ov50a40tsp,
+		sizeof(addr_data_pair_capture_ov50a40tsp) /
 		sizeof(kal_uint16));
 #endif
 }
@@ -654,13 +654,13 @@ static void normal_video_setting(kal_uint16 currefps)
 {
 	LOG_INF("normal_video_setting RES_4000x3000_zsl_30fps\n");
 #if SENSOR_AGAIN_MAX_256
-	ov50a40_table_write_cmos_sensor(
-		addr_data_pair_ov50a40_1080p_30fps_gain256x,
-		sizeof(addr_data_pair_ov50a40_1080p_30fps_gain256x) / sizeof(kal_uint16));
+	ov50a40tsp_table_write_cmos_sensor(
+		addr_data_pair_ov50a40tsp_1080p_30fps_gain256x,
+		sizeof(addr_data_pair_ov50a40tsp_1080p_30fps_gain256x) / sizeof(kal_uint16));
 #else
-	ov50a40_table_write_cmos_sensor(
-		addr_data_pair_video_ov50a40,
-		sizeof(addr_data_pair_video_ov50a40) /
+	ov50a40tsp_table_write_cmos_sensor(
+		addr_data_pair_video_ov50a40tsp,
+		sizeof(addr_data_pair_video_ov50a40tsp) /
 		sizeof(kal_uint16));
 #endif
 }
@@ -669,13 +669,13 @@ static void hs_video_setting(void)
 {
 	LOG_INF("hs_video_setting RES_1280x720_160fps\n");
 #if SENSOR_AGAIN_MAX_256
-	ov50a40_table_write_cmos_sensor(
-		addr_data_pair_ov50a40_1080p_120fps_gain256x,
-		sizeof(addr_data_pair_ov50a40_1080p_120fps_gain256x) / sizeof(kal_uint16));
+	ov50a40tsp_table_write_cmos_sensor(
+		addr_data_pair_ov50a40tsp_1080p_120fps_gain256x,
+		sizeof(addr_data_pair_ov50a40tsp_1080p_120fps_gain256x) / sizeof(kal_uint16));
 #else
-	ov50a40_table_write_cmos_sensor(
-		addr_data_pair_hs_video_ov50a40,
-		sizeof(addr_data_pair_hs_video_ov50a40) /
+	ov50a40tsp_table_write_cmos_sensor(
+		addr_data_pair_hs_video_ov50a40tsp,
+		sizeof(addr_data_pair_hs_video_ov50a40tsp) /
 		sizeof(kal_uint16));
 #endif
 }
@@ -684,13 +684,13 @@ static void slim_video_setting(void)
 {
 	LOG_INF("slim_video_setting RES_3840x2160_30fps\n");
 #if SENSOR_AGAIN_MAX_256
-		ov50a40_table_write_cmos_sensor(
-			addr_data_pair_ov50a40_1080p_60fps_gain256x,
-			sizeof(addr_data_pair_ov50a40_1080p_60fps_gain256x) / sizeof(kal_uint16));
+		ov50a40tsp_table_write_cmos_sensor(
+			addr_data_pair_ov50a40tsp_1080p_60fps_gain256x,
+			sizeof(addr_data_pair_ov50a40tsp_1080p_60fps_gain256x) / sizeof(kal_uint16));
 #else
-	ov50a40_table_write_cmos_sensor(
-		addr_data_pair_slim_video_ov50a40,
-		sizeof(addr_data_pair_slim_video_ov50a40) /
+	ov50a40tsp_table_write_cmos_sensor(
+		addr_data_pair_slim_video_ov50a40tsp,
+		sizeof(addr_data_pair_slim_video_ov50a40tsp) /
 		sizeof(kal_uint16));
 #endif
 }
@@ -700,12 +700,12 @@ static void custom1_setting(void)
 {
   LOG_INF("E\n");
  #if SENSOR_AGAIN_MAX_256
-  ov50a40_table_write_cmos_sensor(
-		addr_data_pair_ov50a40_4096_3072_gain256x,
-		sizeof(addr_data_pair_ov50a40_4096_3072_gain256x) / sizeof(kal_uint16));
+  ov50a40tsp_table_write_cmos_sensor(
+		addr_data_pair_ov50a40tsp_4096_3072_gain256x,
+		sizeof(addr_data_pair_ov50a40tsp_4096_3072_gain256x) / sizeof(kal_uint16));
 #else
-  ov50a40_table_write_cmos_sensor(addr_data_pair_custom1_ov50a40,
-		sizeof(addr_data_pair_custom1_ov50a40) / sizeof(kal_uint16));
+  ov50a40tsp_table_write_cmos_sensor(addr_data_pair_custom1_ov50a40tsp,
+		sizeof(addr_data_pair_custom1_ov50a40tsp) / sizeof(kal_uint16));
 #endif
 }	/*	custom1_setting  */
 
@@ -713,12 +713,12 @@ static void custom2_setting(void)
 {
   LOG_INF("E\n");
 #if SENSOR_AGAIN_MAX_256
-  ov50a40_table_write_cmos_sensor(
-		addr_data_pair_ov50a40_4096_3072_gain256x,
-		sizeof(addr_data_pair_ov50a40_4096_3072_gain256x) / sizeof(kal_uint16));
+  ov50a40tsp_table_write_cmos_sensor(
+		addr_data_pair_ov50a40tsp_4096_3072_gain256x,
+		sizeof(addr_data_pair_ov50a40tsp_4096_3072_gain256x) / sizeof(kal_uint16));
 #else
-  ov50a40_table_write_cmos_sensor(addr_data_pair_custom2_ov50a40,
-		sizeof(addr_data_pair_custom2_ov50a40) / sizeof(kal_uint16));
+  ov50a40tsp_table_write_cmos_sensor(addr_data_pair_custom2_ov50a40tsp,
+		sizeof(addr_data_pair_custom2_ov50a40tsp) / sizeof(kal_uint16));
 #endif
 }	/*	custom2_setting  */
 
@@ -726,35 +726,35 @@ static void custom3_setting(void)
 {
   LOG_INF("E\n");
 #if REMOSAIC_SUPPORT
-  ov50a40_table_write_cmos_sensor(addr_data_pair_custom3_ov50a40,
-		sizeof(addr_data_pair_custom3_ov50a40) / sizeof(kal_uint16));
+  ov50a40tsp_table_write_cmos_sensor(addr_data_pair_custom3_ov50a40tsp,
+		sizeof(addr_data_pair_custom3_ov50a40tsp) / sizeof(kal_uint16));
 #else
-  ov50a40_table_write_cmos_sensor(addr_data_pair_capture_ov50a40,
-		sizeof(addr_data_pair_capture_ov50a40) / sizeof(kal_uint16));
+  ov50a40tsp_table_write_cmos_sensor(addr_data_pair_capture_ov50a40tsp,
+		sizeof(addr_data_pair_capture_ov50a40tsp) / sizeof(kal_uint16));
 #endif
 }	/*	custom3_setting  */
 static void custom4_setting(void)
 {
   LOG_INF("E\n");
 #if SENSOR_AGAIN_MAX_256
-  ov50a40_table_write_cmos_sensor(
-		addr_data_pair_ov50a40_4096_3072_gain256x,
-		sizeof(addr_data_pair_ov50a40_4096_3072_gain256x) / sizeof(kal_uint16));
+  ov50a40tsp_table_write_cmos_sensor(
+		addr_data_pair_ov50a40tsp_4096_3072_gain256x,
+		sizeof(addr_data_pair_ov50a40tsp_4096_3072_gain256x) / sizeof(kal_uint16));
 #else
-  ov50a40_table_write_cmos_sensor(addr_data_pair_custom4_ov50a40,
-		sizeof(addr_data_pair_custom4_ov50a40) / sizeof(kal_uint16));
+  ov50a40tsp_table_write_cmos_sensor(addr_data_pair_custom4_ov50a40tsp,
+		sizeof(addr_data_pair_custom4_ov50a40tsp) / sizeof(kal_uint16));
 #endif
 }	/*	custom4_setting  */
 static void custom5_setting(void)
 {
   LOG_INF("E\n");
 #if SENSOR_AGAIN_MAX_256
-  ov50a40_table_write_cmos_sensor(
-		addr_data_pair_ov50a40_4096_3072_gain256x,
-		sizeof(addr_data_pair_ov50a40_4096_3072_gain256x) / sizeof(kal_uint16));
+  ov50a40tsp_table_write_cmos_sensor(
+		addr_data_pair_ov50a40tsp_4096_3072_gain256x,
+		sizeof(addr_data_pair_ov50a40tsp_4096_3072_gain256x) / sizeof(kal_uint16));
 #else
-  ov50a40_table_write_cmos_sensor(addr_data_pair_custom5_ov50a40,
-		sizeof(addr_data_pair_custom5_ov50a40) / sizeof(kal_uint16));
+  ov50a40tsp_table_write_cmos_sensor(addr_data_pair_custom5_ov50a40tsp,
+		sizeof(addr_data_pair_custom5_ov50a40tsp) / sizeof(kal_uint16));
 #endif
 }	/*	custom5_setting  */
 static kal_uint32 return_sensor_id(void)
@@ -778,7 +778,8 @@ static kal_uint32 get_imgsensor_id(UINT32 *sensor_id)
 		spin_unlock(&imgsensor_drv_lock);
 		do {
 			*sensor_id = return_sensor_id();
-			if (*sensor_id == imgsensor_info.sensor_id) {
+			if (*sensor_id == OV50A40_SENSOR_ID) {
+				*sensor_id = imgsensor_info.sensor_id;
 				pr_info("i2c write id: 0x%x, sensor id: 0x%x\n",
 					imgsensor.i2c_write_id, *sensor_id);
 				return ERROR_NONE;
@@ -809,7 +810,8 @@ static kal_uint32 open(void)
 		spin_unlock(&imgsensor_drv_lock);
 		do {
 			sensor_id = return_sensor_id();
-			if (sensor_id == imgsensor_info.sensor_id) {
+			if (sensor_id == OV50A40_SENSOR_ID) {
+				sensor_id = imgsensor_info.sensor_id;
 				pr_info("i2c write id: 0x%x, sensor id: 0x%x\n",
 					imgsensor.i2c_write_id, sensor_id);
 				break;
@@ -1579,18 +1581,18 @@ static kal_uint32 get_default_framerate_by_scenario(
 
 	return ERROR_NONE;
 }
-kal_uint32 ov50a40_dig_gain = 0;
-kal_uint32 ov50a40_expo_gain = 0;
-kal_uint32 ov50a40_blk_lvl_target = 0;
+kal_uint32 ov50a40tsp_dig_gain = 0;
+kal_uint32 ov50a40tsp_expo_gain = 0;
+kal_uint32 ov50a40tsp_blk_lvl_target = 0;
 static kal_uint32 set_test_pattern_mode(kal_uint32 modes,
 	struct SET_SENSOR_PATTERN_SOLID_COLOR *pdata)
 {
 	if(modes == 5) {
-		ov50a40_dig_gain = (read_cmos_sensor(0x3510) << 16) | (read_cmos_sensor(0x3511) << 8) | read_cmos_sensor(0x3512);
-		ov50a40_expo_gain = (read_cmos_sensor(0x3508) << 8) | read_cmos_sensor(0x3509);
-		ov50a40_blk_lvl_target = (read_cmos_sensor(0x4019) << 8) | read_cmos_sensor(0x401a);
+		ov50a40tsp_dig_gain = (read_cmos_sensor(0x3510) << 16) | (read_cmos_sensor(0x3511) << 8) | read_cmos_sensor(0x3512);
+		ov50a40tsp_expo_gain = (read_cmos_sensor(0x3508) << 8) | read_cmos_sensor(0x3509);
+		ov50a40tsp_blk_lvl_target = (read_cmos_sensor(0x4019) << 8) | read_cmos_sensor(0x401a);
 	}
-	printk("modes: %d ov50a40_dig_gain:0x%x ov50a40_expo_gain:0x%x ov50a40_blk_lvl_target:0x%x\n", modes,ov50a40_dig_gain,ov50a40_expo_gain,ov50a40_blk_lvl_target);
+	printk("modes: %d ov50a40tsp_dig_gain:0x%x ov50a40tsp_expo_gain:0x%x ov50a40tsp_blk_lvl_target:0x%x\n", modes,ov50a40tsp_dig_gain,ov50a40tsp_expo_gain,ov50a40tsp_blk_lvl_target);
 	if (modes) {
 		if (modes == 5 && (pdata != NULL)) {
 			write_cmos_sensor(0x3510, 0x00);
@@ -1606,22 +1608,22 @@ static kal_uint32 set_test_pattern_mode(kal_uint32 modes,
 		else
 			write_cmos_sensor(0x50C1, 0x01);
 	} else {
-			if(ov50a40_dig_gain !=0 && ov50a40_expo_gain !=0 && ov50a40_blk_lvl_target !=0) {
-				write_cmos_sensor(0x3510, ov50a40_dig_gain >> 16);
-				write_cmos_sensor(0x3511, (ov50a40_dig_gain &0xffff) >>8);
-				write_cmos_sensor(0x3512, ov50a40_dig_gain & 0xff);
+			if(ov50a40tsp_dig_gain !=0 && ov50a40tsp_expo_gain !=0 && ov50a40tsp_blk_lvl_target !=0) {
+				write_cmos_sensor(0x3510, ov50a40tsp_dig_gain >> 16);
+				write_cmos_sensor(0x3511, (ov50a40tsp_dig_gain &0xffff) >>8);
+				write_cmos_sensor(0x3512, ov50a40tsp_dig_gain & 0xff);
 
-				write_cmos_sensor(0x3508, ov50a40_expo_gain >> 8);
-				write_cmos_sensor(0x3509, ov50a40_expo_gain & 0xff);
+				write_cmos_sensor(0x3508, ov50a40tsp_expo_gain >> 8);
+				write_cmos_sensor(0x3509, ov50a40tsp_expo_gain & 0xff);
 
-				write_cmos_sensor(0x4019, ov50a40_blk_lvl_target >> 8);
-				write_cmos_sensor(0x401a, ov50a40_blk_lvl_target & 0xff);
+				write_cmos_sensor(0x4019, ov50a40tsp_blk_lvl_target >> 8);
+				write_cmos_sensor(0x401a, ov50a40tsp_blk_lvl_target & 0xff);
 			}
 			write_cmos_sensor(0x50C1, 0x00);
 		}
-	printk("read  ov50a40_dig_gain 0x%x 0x%x 0x%x \n",read_cmos_sensor(0x3510),read_cmos_sensor(0x3511),read_cmos_sensor(0x3512));
-	printk("read  ov50a40_expo_gain 0x%x 0x%x \n",read_cmos_sensor(0x3508),read_cmos_sensor(0x3509));
-	printk("read  ov50a40_blk_lvl_target 0x%x 0x%x \n",read_cmos_sensor(0x4019),read_cmos_sensor(0x401A));
+	printk("read  ov50a40tsp_dig_gain 0x%x 0x%x 0x%x \n",read_cmos_sensor(0x3510),read_cmos_sensor(0x3511),read_cmos_sensor(0x3512));
+	printk("read  ov50a40tsp_expo_gain 0x%x 0x%x \n",read_cmos_sensor(0x3508),read_cmos_sensor(0x3509));
+	printk("read  ov50a40tsp_blk_lvl_target 0x%x 0x%x \n",read_cmos_sensor(0x4019),read_cmos_sensor(0x401A));
 	spin_lock(&imgsensor_drv_lock);
 	imgsensor.test_pattern = modes;
 	spin_unlock(&imgsensor_drv_lock);
@@ -2148,7 +2150,7 @@ static struct SENSOR_FUNCTION_STRUCT sensor_func = {
 	close
 };
 
-UINT32 OV50A40_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc)
+UINT32 OV50A40TSP_MIPI_RAW_SensorInit(struct SENSOR_FUNCTION_STRUCT **pfFunc)
 {
 	/* To Do : Check Sensor status here */
 	if (pfFunc != NULL)
