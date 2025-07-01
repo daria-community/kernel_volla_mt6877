@@ -83,11 +83,6 @@ mainaf-y  += common/gt9772af/GT9772AF.o
 mainaf-y  += common/aw8601csr/AW8601CSR.o
 mainaf-y  += common/fp5510fe4af/FP5510FE4AF.o
 mainaf-y  += common/cn3927elcaf/CN3927ELCAF.o
-#/*prize add by xiaguohong 20240912 start*/
-ifeq ($(CONFIG_MTK_LENS_PD9402A_SUPPORT), y)
-mainaf-y  += common/pd9402a/PD9402A.o
-endif
-#/*prize add by xiaguohong 20240912 end*/
 ifeq ($(CONFIG_MTK_LENS_DW9781CAF_SUPPORT), y)
 mainaf-y  += common/dw9781caf/DW9781CAF.o
 mainaf-y  += common/dw9781caf/OIS_func_register.o
@@ -96,5 +91,7 @@ mainaf-y  += common/aw8601xaf/AW8601xAF.o
 mainaf-y  += common/aw86014af/AW86014AF.o
 mainaf-y  += common/gt9764baf/GT9764BAF.o
 mainaf-y  += common/aw86017csraf/AW86017CSRAF.o
+mainaf-y  += common/pd9402aaf/PD9402A.o
+mainaf-y  += common/dw9800vaf/DW9800V.o
 #/*prize add by zhuzhengjiang for lens:zc535 20220110 end*/
 

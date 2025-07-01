@@ -25,6 +25,18 @@ extern int FP5516WEAF_Release(struct inode *a_pstInode, struct file *a_pstFile);
 extern int FP5516WEAF_PowerDown(struct i2c_client *pstAF_I2Cclient,
 				int *pAF_Opened);
 extern int FP5516WEAF_GetFileName(unsigned char *pFileName);
+
+#define PD9402A_SetI2Cclient PD9402A_SetI2Cclient_Main
+#define PD9402A_Ioctl PD9402A_Ioctl_Main
+#define PD9402A_Release PD9402A_Release_Main
+#define PD9402A_GetFileName PD9402A_GetFileName_Main
+extern int PD9402A_SetI2Cclient(struct i2c_client *pstAF_I2Cclient,
+				 spinlock_t *pAF_SpinLock, int *pAF_Opened);
+extern long PD9402A_Ioctl(struct file *a_pstFile, unsigned int a_u4Command,
+			   unsigned long a_u4Param);
+extern int PD9402A_Release(struct inode *a_pstInode, struct file *a_pstFile);
+extern int PD9402A_GetFileName(unsigned char *pFileName);
+
 /*prize  add  for FP5516WEAF by zhuzhengjiang    20210621-end*/
 #define AK7371AF_SetI2Cclient AK7371AF_SetI2Cclient_Main
 #define AK7371AF_Ioctl AK7371AF_Ioctl_Main
@@ -180,24 +192,6 @@ extern long FP5510FE4AF_Ioctl(struct file *a_pstFile,
 extern int FP5510FE4AF_Release(struct inode *a_pstInode,
 	struct file *a_pstFile);
 extern int FP5510FE4AF_GetFileName(unsigned char *pFileName);
-
-/*prize add by xiaguohong 20240912 start*/
-#ifdef CONFIG_MTK_LENS_PD9402A_SUPPORT
-#define PD9402A_SetI2Cclient PD9402A_SetI2Cclient_Main
-#define PD9402A_Ioctl PD9402A_Ioctl_Main
-#define PD9402A_Release PD9402A_Release_Main
-#define PD9402A_PowerDown PD9402A_PowerDown_Main
-#define PD9402A_GetFileName PD9402A_GetFileName_Main
-extern int PD9402A_SetI2Cclient(struct i2c_client *pstAF_I2Cclient,
-				 spinlock_t *pAF_SpinLock, int *pAF_Opened);
-extern long PD9402A_Ioctl(struct file *a_pstFile, unsigned int a_u4Command,
-			   unsigned long a_u4Param);
-extern int PD9402A_Release(struct inode *a_pstInode, struct file *a_pstFile);
-extern int PD9402A_PowerDown(struct i2c_client *pstAF_I2Cclient,
-				int *pAF_Opened);
-extern int PD9402A_GetFileName(unsigned char *pFileName);
-#endif
-/*prize add by xiaguohong 20240912 end*/
 
 #ifdef CONFIG_MTK_LENS_DW9781CAF_SUPPORT
 #define DW9781CAF_SetI2Cclient DW9781CAF_SetI2Cclient_Main
@@ -549,4 +543,16 @@ extern long AW86017CSRAF_Ioctl(struct file *a_pstFile, unsigned int a_u4Command,
 extern int AW86017CSRAF_Release(struct inode *a_pstInode, struct file *a_pstFile);
 extern int AW86017CSRAF_GetFileName(unsigned char *pFileName);
 //prize add by linchong 20220623 end
+//prize add by linchong 20241028 start
+#define DW9800V_SetI2Cclient DW9800V_SetI2Cclient_Main
+#define DW9800V_Ioctl DW9800V_Ioctl_Main
+#define DW9800V_Release DW9800V_Release_Main
+#define DW9800V_GetFileName DW9800V_GetFileName_Main
+extern int DW9800V_SetI2Cclient(struct i2c_client *pstAF_I2Cclient,
+				 spinlock_t *pAF_SpinLock, int *pAF_Opened);
+extern long DW9800V_Ioctl(struct file *a_pstFile, unsigned int a_u4Command,
+			   unsigned long a_u4Param);
+extern int DW9800V_Release(struct inode *a_pstInode, struct file *a_pstFile);
+extern int DW9800V_GetFileName(unsigned char *pFileName);
+//prize add by linchong 20241028 end
 #endif
