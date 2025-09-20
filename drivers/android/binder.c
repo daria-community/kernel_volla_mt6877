@@ -155,9 +155,6 @@ static int binder_set_stop_on_user_error(const char *val,
 module_param_call(stop_on_user_error, binder_set_stop_on_user_error,
 	param_get_int, &binder_stop_on_user_error, 0644);
 
-static bool binder_global_pid_lookups = true;
-module_param_named(global_pid_lookups, binder_global_pid_lookups, bool, S_IRUGO);
-
 #define binder_debug(mask, x...) \
 	do { \
 		if (binder_debug_mask & mask) \
@@ -1344,7 +1341,7 @@ static struct binder_node *binder_init_node_ilocked(
 	node->min_priority = to_kernel_prio(node->sched_policy, priority);
 	node->accept_fds = !!(flags & FLAT_BINDER_FLAG_ACCEPTS_FDS);
 	node->inherit_rt = !!(flags & FLAT_BINDER_FLAG_INHERIT_RT);
-	node->txn_security_ctx = 0; /*!!(flags & FLAT_BINDER_FLAG_TXN_SECURITY_CTX);*/
+	node->txn_security_ctx = !!(flags & FLAT_BINDER_FLAG_TXN_SECURITY_CTX);
 	spin_lock_init(&node->lock);
 	INIT_LIST_HEAD(&node->work.entry);
 	INIT_LIST_HEAD(&node->async_todo);
@@ -2875,15 +2872,7 @@ static bool binder_proc_transaction(struct binder_transaction *t,
 	if (oneway) {
 		BUG_ON(thread);
 		if (node->has_async_transaction) {
-			if (!strcmp(proc->context->name, "hwbinder")) {
-				// Halium: possible libgbinder bug workaround
-				pr_info("%d has pending async transaction, but still adding a new transaction to todo list (gbinder bug workaround)\n",
-						proc->pid);
-			} else {
-				pr_info("%d not applying gbinder workaround, context %s is not hwbinder\n",
-						proc->pid, proc->context->name);
-				pending_async = true;
-			}
+			pending_async = true;
 		} else {
 			node->has_async_transaction = true;
 		}
@@ -3887,8 +3876,7 @@ static int binder_thread_write(struct binder_proc *proc,
 
 				buf_node = buffer->target_node;
 				binder_node_inner_lock(buf_node);
-				// Halium: possible libgbinder bug workaround
-				/*BUG_ON(!buf_node->has_async_transaction);*/
+				BUG_ON(!buf_node->has_async_transaction);
 				BUG_ON(buf_node->proc != proc);
 				w = binder_dequeue_work_head_ilocked(
 						&buf_node->async_todo);
@@ -4507,9 +4495,6 @@ retry:
 			trd->sender_pid =
 				task_tgid_nr_ns(sender,
 						task_active_pid_ns(current));
-
-			if (binder_global_pid_lookups && trd->sender_pid == 0)
-				trd->sender_pid = task_tgid_nr(sender);
 
 #ifdef CONFIG_MTK_TASK_TURBO
 			if (binder_start_turbo_inherit(t_from->task,

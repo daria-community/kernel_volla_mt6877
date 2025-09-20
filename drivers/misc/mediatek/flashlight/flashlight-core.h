@@ -28,17 +28,6 @@
 	(FLASHLIGHT_TYPE_MAX * FLASHLIGHT_CT_MAX * FLASHLIGHT_PART_MAX * \
 	 FLASHLIGHT_SW_DISABLE_STATUS_TMPBUF_SIZE + 1)
 
-/* sysfs - torch status */
-#define FLASHLIGHT_TORCH_NUM    4
-#define FLASHLIGHT_TORCH_TYPE   0
-#define FLASHLIGHT_TORCH_CT     1
-#define FLASHLIGHT_TORCH_PART   2
-#define FLASHLIGHT_TORCH_STATUS 3
-#define FLASHLIGHT_TORCH_STATUS_TMPBUF_SIZE 9
-#define FLASHLIGHT_TORCH_STATUS_BUF_SIZE \
-	(FLASHLIGHT_TYPE_MAX * FLASHLIGHT_CT_MAX * FLASHLIGHT_PART_MAX * \
-	 FLASHLIGHT_TORCH_STATUS_TMPBUF_SIZE + 1)
-
 /* sysfs - charger status */
 #define FLASHLIGHT_CHARGER_NUM    4
 #define FLASHLIGHT_CHARGER_TYPE   0
@@ -80,7 +69,6 @@
 #define FLASHLIGHT_ARG_DUR   4
 #define FLASHLIGHT_ARG_LEVEL_MAX 255
 #define FLASHLIGHT_ARG_DUR_MAX   3000 /* ms */
-
 struct flashlight_arg {
 	int type;
 	int ct;
@@ -93,7 +81,6 @@ struct flashlight_arg {
 
 /* flashlight devices */
 #define FLASHLIGHT_NAME_SIZE 32 /* flashlight device name */
-
 struct flashlight_device_id {
 	int type;
 	int ct;
@@ -102,7 +89,6 @@ struct flashlight_device_id {
 	int channel;                     /* device channel */
 	int decouple;                    /* device decouple */
 };
-
 extern const struct flashlight_device_id flashlight_id[];
 extern const int flashlight_device_num;
 
@@ -110,14 +96,12 @@ struct flashlight_dev {
 	struct list_head node;
 	struct flashlight_operations *ops;
 	struct flashlight_device_id dev_id;
-
 	/* device status */
 	int enable;
 	int level;
 	int low_pt_level;
 	int charger_status;
 	int sw_disable_status;
-	int torch_status;
 };
 
 /* device arguments */
@@ -135,6 +119,7 @@ struct flashlight_operations {
 	int (*flashlight_set_driver)(int set);
 };
 
+/* device resiger */
 int flashlight_dev_register(
 		const char *name, struct flashlight_operations *dev_ops);
 int flashlight_dev_unregister(const char *name);
@@ -143,6 +128,18 @@ int flashlight_dev_register_by_device_id(
 		struct flashlight_operations *dev_ops);
 int flashlight_dev_unregister_by_device_id(struct flashlight_device_id *dev_id);
 
+/* get id and index */
+int flashlight_get_type_id(int type_index);
+int flashlight_get_ct_id(int ct_index);
+int flashlight_get_part_id(int part_index);
+int flashlight_get_type_index(int type_id);
+int flashlight_get_ct_index(int ct_id);
+int flashlight_get_part_index(int part_id);
+
+/* verify id and index */
+int flashlight_verify_type_index(int type_index);
+int flashlight_verify_ct_index(int ct_index);
+int flashlight_verify_part_index(int part_index);
 int flashlight_verify_index(int type_index, int ct_index, int part_index);
 
 #ifdef CONFIG_MTK_FLASHLIGHT_PT
